@@ -1,7 +1,7 @@
 #ifndef direct_pin_read_h_
 #define direct_pin_read_h_
 
-#if defined(__AVR__) || defined(__MK20DX128__) || defined(__MK20DX256__)
+#if defined(__AVR__) || (defined(__arm__) && defined(CORE_TEENSY))
 
 #define IO_REG_TYPE			uint8_t
 #define PIN_TO_BASEREG(pin)             (portInputRegister(digitalPinToPort(pin)))
