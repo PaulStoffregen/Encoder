@@ -69,6 +69,8 @@ typedef struct {
 class Encoder
 {
 public:
+    
+    
 	Encoder(uint8_t pin1, uint8_t pin2) {
 		#ifdef INPUT_PULLUP
 		pinMode(pin1, INPUT_PULLUP);
@@ -89,6 +91,8 @@ public:
 		// the initial state
 		delayMicroseconds(2000);
 		uint8_t s = 0;
+        encoder.stepTime = 0;
+        encoder.rate = 0;
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
 		if (DIRECT_PIN_READ(encoder.pin2_register, encoder.pin2_bitmask)) s |= 2;
 		encoder.state = s;
@@ -117,6 +121,17 @@ public:
 		encoder.position = p;
 		interrupts();
 	}
+    inline float stepRate() {
+        if (interrupts_in_use < 2) {
+            noInterrupts();
+            update(&encoder);
+        } else {
+            noInterrupts();
+        }
+        float ret = encoder.rate;
+        interrupts();
+        return ret;
+    }
 #else
 	inline int32_t read() {
 		update(&encoder);
@@ -125,9 +140,14 @@ public:
 	inline void write(int32_t p) {
 		encoder.position = p;
 	}
+    inline float stepRate() {
+        return encoder.rate;
+    }
 #endif
 private:
-	Encoder_internal_state_t encoder;
+    Encoder_internal_state_t encoder;
+    elapsedMicros stepTime;
+    float rate;
 #ifdef ENCODER_USE_INTERRUPTS
 	uint8_t interrupts_in_use;
 #endif
@@ -276,16 +296,24 @@ private:
 		arg->state = (state >> 2);
 		switch (state) {
 			case 1: case 7: case 8: case 14:
-				arg->position++;
+                encoder.rate = 1 / encoder.stepTime;
+                encoder.stepTime = 0;
+                arg->position++;
 				return;
 			case 2: case 4: case 11: case 13:
-				arg->position--;
+                encoder.rate = -1 / encoder.stepTime;
+                encoder.stepTime = 0;
+                arg->position--;
 				return;
 			case 3: case 12:
-				arg->position += 2;
+                encoder.rate = 2 / encoder.stepTime;
+                encoder.stepTime = 0;
+                arg->position += 2;
 				return;
 			case 6: case 9:
-				arg->position -= 2;
+                encoder.rate = -2 / encoder.stepTime;
+                encoder.stepTime = 0;
+                arg->position -= 2;
 				return;
 		}
 #endif
