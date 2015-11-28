@@ -91,8 +91,8 @@ public:
 		// the initial state
 		delayMicroseconds(2000);
 		uint8_t s = 0;
-        encoder.stepTime = 0;
-        encoder.rate = 0;
+        stepTime = 0;
+        rate = 0;
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
 		if (DIRECT_PIN_READ(encoder.pin2_register, encoder.pin2_bitmask)) s |= 2;
 		encoder.state = s;
@@ -128,7 +128,7 @@ public:
         } else {
             noInterrupts();
         }
-        float ret = encoder.rate;
+        float ret = rate;
         interrupts();
         return ret;
     }
@@ -141,7 +141,7 @@ public:
 		encoder.position = p;
 	}
     inline float stepRate() {
-        return encoder.rate;
+        return rate;
     }
 #endif
 private:
@@ -296,23 +296,23 @@ private:
 		arg->state = (state >> 2);
 		switch (state) {
 			case 1: case 7: case 8: case 14:
-                encoder.rate = 1 / encoder.stepTime;
-                encoder.stepTime = 0;
+                rate = 1 / stepTime;
+                stepTime = 0;
                 arg->position++;
 				return;
 			case 2: case 4: case 11: case 13:
-                encoder.rate = -1 / encoder.stepTime;
-                encoder.stepTime = 0;
+                rate = -1 / stepTime;
+                stepTime = 0;
                 arg->position--;
 				return;
 			case 3: case 12:
-                encoder.rate = 2 / encoder.stepTime;
-                encoder.stepTime = 0;
+                rate = 2 / stepTime;
+                stepTime = 0;
                 arg->position += 2;
 				return;
 			case 6: case 9:
-                encoder.rate = -2 / encoder.stepTime;
-                encoder.stepTime = 0;
+                rate = -2 / stepTime;
+                stepTime = 0;
                 arg->position -= 2;
 				return;
 		}
