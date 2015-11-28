@@ -146,8 +146,8 @@ public:
 #endif
 private:
     Encoder_internal_state_t encoder;
-    elapsedMicros stepTime;
-    float rate;
+    static elapsedMicros stepTime;
+    static float rate;
 #ifdef ENCODER_USE_INTERRUPTS
 	uint8_t interrupts_in_use;
 #endif
