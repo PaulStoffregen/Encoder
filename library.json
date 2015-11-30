@@ -5,7 +5,7 @@
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/PaulStoffregen/Encoder.git"
+    "url": "https://github.com/QuentinTorg/Encoder"
   },
   "frameworks": "arduino",
   "platforms":
