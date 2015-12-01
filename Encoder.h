@@ -64,6 +64,10 @@ typedef struct {
 	IO_REG_TYPE            pin2_bitmask;
 	uint8_t                state;
 	int32_t                position;
+    elapsedMicros stepTime;
+    float rate;
+    float rate1;
+    float rate2;
 } Encoder_internal_state_t;
 
 class Encoder
@@ -91,8 +95,10 @@ public:
 		// the initial state
 		delayMicroseconds(2000);
 		uint8_t s = 0;
-        stepTime = 0;
-        rate = 0;
+        encoder.stepTime = 0;
+        encoder.rate = 0;
+        encoder.rate1 = 0;
+        encoder.rate2 = 0
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
 		if (DIRECT_PIN_READ(encoder.pin2_register, encoder.pin2_bitmask)) s |= 2;
 		encoder.state = s;
@@ -128,7 +134,7 @@ public:
         } else {
             noInterrupts();
         }
-        float ret = rate;
+        float ret = encoder.rate;
         interrupts();
         return ret;
     }
@@ -141,13 +147,11 @@ public:
 		encoder.position = p;
 	}
     inline float stepRate() {
-        return rate;
+        return encoder.rate;
     }
 #endif
 private:
     Encoder_internal_state_t encoder;
-    static elapsedMicros stepTime;
-    static float rate;
 #ifdef ENCODER_USE_INTERRUPTS
 	uint8_t interrupts_in_use;
 #endif
@@ -296,23 +300,55 @@ private:
 		arg->state = (state >> 2);
 		switch (state) {
 			case 1: case 7: case 8: case 14:
-                rate = 1 / stepTime;
-                stepTime = 0;
+                if (arg->position % 2 == 0) {
+                    arg->rate1 = 0.5 / arg->stepTime;
+                }
+                else {
+                    arg->rate2 = 0.5 / arg->stepTime;
+                }
+                arg->stepTime = 0;
+                arg->rate = (arg->rate1 + arg->rate2);
                 arg->position++;
-				return;
+                return;
 			case 2: case 4: case 11: case 13:
-                rate = -1 / stepTime;
-                stepTime = 0;
+                if (arg->position % 2 == 0) {
+                    arg->rate1 = 0.5 / arg->stepTime;
+                }
+                else {
+                    arg->rate2 = 0.5 / arg->stepTime;
+                }
+                arg->stepTime = 0;
+                arg->rate = (arg->rate1 + arg->rate2);
                 arg->position--;
 				return;
-			case 3: case 12:
-                rate = 2 / stepTime;
-                stepTime = 0;
+            case 3: case 12:
+                if (arg->position % 2 == 0) {
+                    arg->rate1 = 1 / arg->stepTime;
+                    arg->stepTime = 0;
+                    arg->rate2 = arg->rate1;
+                    arg->rate = arg->rate1;
+                }
+                else {
+                    arg->rate2 = 1 / arg->stepTime;
+                    arg->stepTime = 0;
+                    arg->rate1 = arg->rate2;
+                    arg->rate = arg->rate2;
+                }
                 arg->position += 2;
 				return;
 			case 6: case 9:
-                rate = -2 / stepTime;
-                stepTime = 0;
+                if (arg->position % 2 == 0) {
+                    arg->rate1 = 1 / arg->stepTime;
+                    arg->stepTime = 0;
+                    arg->rate2 = arg->rate1;
+                    arg->rate = arg->rate1;
+                }
+                else {
+                    arg->rate2 = 1 / arg->stepTime;
+                    arg->stepTime = 0;
+                    arg->rate1 = arg->rate2;
+                    arg->rate = arg->rate2;
+                }
                 arg->position -= 2;
 				return;
 		}
