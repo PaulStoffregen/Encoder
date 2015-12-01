@@ -311,11 +311,11 @@ private:
                 arg->position++;
                 return;
 			case 2: case 4: case 11: case 13:
-                if (arg->position % 2 == 0) {
-                    arg->rate1 = 0.5 / arg->stepTime;
+                if (arg->position % 2 != 0) {
+                    arg->rate1 = -0.5 / arg->stepTime;
                 }
                 else {
-                    arg->rate2 = 0.5 / arg->stepTime;
+                    arg->rate2 = -0.5 / arg->stepTime;
                 }
                 arg->stepTime = 0;
                 arg->rate = (arg->rate1 + arg->rate2);
@@ -337,14 +337,14 @@ private:
                 arg->position += 2;
 				return;
 			case 6: case 9:
-                if (arg->position % 2 == 0) {
-                    arg->rate1 = 1 / arg->stepTime;
+                if (arg->position % 2 != 0) {
+                    arg->rate1 = -1 / arg->stepTime;
                     arg->stepTime = 0;
                     arg->rate2 = arg->rate1;
                     arg->rate = arg->rate1;
                 }
                 else {
-                    arg->rate2 = 1 / arg->stepTime;
+                    arg->rate2 = -1 / arg->stepTime;
                     arg->stepTime = 0;
                     arg->rate1 = arg->rate2;
                     arg->rate = arg->rate2;
