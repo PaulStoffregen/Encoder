@@ -98,7 +98,7 @@ public:
         encoder.stepTime = 0;
         encoder.rate = 0;
         encoder.rate1 = 0;
-        encoder.rate2 = 0
+        encoder.rate2 = 0;
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
 		if (DIRECT_PIN_READ(encoder.pin2_register, encoder.pin2_bitmask)) s |= 2;
 		encoder.state = s;
