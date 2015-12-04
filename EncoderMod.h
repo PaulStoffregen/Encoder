@@ -26,8 +26,8 @@
  */
 
 
-#ifndef Encoder_h_
-#define Encoder_h_
+#ifndef EncoderMod_h_
+#define EncoderMod_h_
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
