@@ -11,7 +11,7 @@
 // your program must call the read() function rapidly, or risk
 // missing changes in position.
 #define ENCODER_DO_NOT_USE_INTERRUPTS
-#include <Encoder.h>
+#include <EncoderMod.h>
 
 // Beware of Serial.print() speed.  Without interrupts, if you
 // transmit too much data with Serial.print() it can slow your
