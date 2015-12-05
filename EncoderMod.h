@@ -138,6 +138,23 @@ public:
         interrupts();
         return ret;
     }
+    inline float extrapolate() {
+        if (interrupts_in_use < 2) {
+            noInterrupts();
+            update(&encoder);
+        } else {
+            noInterrupts();
+        }
+        float lastRate = encoder.rate;
+        int32_t lastPosition = encoder.position;
+        float extrapolation = lastRate * encoder.stepTime;
+        interrupts();
+        if (extrapolation > 1)
+            extrapolation = 1;
+        else if (extrapolation < -1)
+            extrapolation = -1;
+        return (extrapolation + lastPosition);
+    }
 #else
 	inline int32_t read() {
 		update(&encoder);
@@ -148,6 +165,14 @@ public:
 	}
     inline float stepRate() {
         return encoder.rate;
+    }
+    inline float extrapolate() {
+        float extrapolation = encoder.rate * encoder.stepTime;
+        if (extrapolation > 1)
+            extrapolation = 1;
+        else if (extrapolation < -1)
+            extrapolation = -1;
+        return (extrapolation + encoder.position);
     }
 #endif
 private:
