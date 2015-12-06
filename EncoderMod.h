@@ -134,9 +134,16 @@ public:
         } else {
             noInterrupts();
         }
-        int32_t lastPosition = encoder.position;
+        loat lastRate = encoder.rate;
+        float elapsedTime = encoder.stepTime;
         interrupts();
-        return ((extrapolate() - lastPosition) / encoder.stepTime);
+        float extrapolation = lastRate * elapsedTime;
+        if (extrapolation > 1)
+            return (1 / elapsedTime);
+        else if (extrapolation < -1)
+            return (-1 / elapsedTime);
+        else
+            return (lastRate);
     }
     inline float extrapolate() {
         if (interrupts_in_use < 2) {
@@ -147,8 +154,9 @@ public:
         }
         float lastRate = encoder.rate;
         int32_t lastPosition = encoder.position;
-        float extrapolation = lastRate * encoder.stepTime;
+        float extrapolation = encoder.stepTime;
         interrupts();
+        extrapolation *= lastRate;
         if (extrapolation > 1)
             extrapolation = 1;
         else if (extrapolation < -1)
