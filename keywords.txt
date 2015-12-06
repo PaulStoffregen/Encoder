@@ -5,3 +5,4 @@ Encoder	KEYWORD1
 read KEYWORD2
 write KEYWORDD2
 stepRate KEYWORD2
+extrapolate KEYWORD2
