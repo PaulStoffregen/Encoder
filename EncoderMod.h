@@ -68,6 +68,8 @@ typedef struct {
     float rate;
     float rate1;
     float rate2;
+    float previousRate;
+    float accel;
     bool lastRateTimer;
 } Encoder_internal_state_t;
 
@@ -100,6 +102,8 @@ public:
         encoder.rate = 0;
         encoder.rate1 = 0;
         encoder.rate2 = 0;
+        encoder.previousRate = 0;
+        encoder.accel = 0;
         encoder.lastRateTimer = 0;
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
 		if (DIRECT_PIN_READ(encoder.pin2_register, encoder.pin2_bitmask)) s |= 2;
@@ -139,16 +143,17 @@ public:
         }
         float lastRate = encoder.rate;
         float elapsedTime = encoder.stepTime;
+        float lastAccel = encoder.accel;
         interrupts();
-        float extrapolation = lastRate * elapsedTime;
-        if (extrapolation > 1) {
+        float extrapolatedPosition = lastRate * elapsedTime + 0.5 * lastAccel * elapsedTime * elapsedTime;
+        if (extrapolatedPosition > 1) {
             return (1 / elapsedTime);
         }
-        else if (extrapolation < -1) {
+        else if (extrapolatedPosition < -1) {
             return (-1 / elapsedTime);
         }
         else {
-            return (lastRate);
+            return (lastRate + lastAccel * elapsedTime);
         }
     }
     inline float extrapolate() {
@@ -161,16 +166,19 @@ public:
         }
         float lastRate = encoder.rate;
         int32_t lastPosition = encoder.position;
-        float extrapolation = encoder.stepTime;
+        float extrapolatedPosition = encoder.stepTime;
+        float lastAccel = encoder.accel;
         interrupts();
-        extrapolation *= lastRate;
-        if (extrapolation > 1) {
-            extrapolation = 1;
+        extrapolatedPosition = lastRate * extrapolatedPosition + 0.5 * lastAccel * extrapolatedPosition * extrapolatedPosition;
+        if (extrapolatedPosition > 1) {
+            return (lastPosition + 1);
         }
-        else if (extrapolation < -1) {
-            extrapolation = -1;
+        else if (extrapolatedPosition < -1) {
+            return (lastPosition - 1);
         }
-        return (extrapolation + lastPosition);
+        else {
+            return (extrapolatedPosition + lastPosition);
+        }
     }
 #else
 	inline int32_t read() {
@@ -181,17 +189,30 @@ public:
 		encoder.position = p;
 	}
     inline float stepRate() {
-        return ((extrapolate() - encoder.position) / encoder.stepTime);
+        float extrapolatedPosition = encoder.rate * encoder.stepTime + 0.5 * encoder.accel * encoder.stepTime * encoder.stepTime;
+        
+        if (extrapolatedPosition > 1) {
+            return (1 / encoder.stepTime);
+        }
+        else if (extrapolatedPosition < -1) {
+            return (-1 / encoder.stepTime);
+        }
+        else {
+            return (encoder.rate + encoder.accel * encoder.stepTime)
+        }
+        
     }
     inline float extrapolate() {
-        float extrapolation = encoder.rate * encoder.stepTime;
-        if (extrapolation > 1) {
-            extrapolation = 1;
+        float extrapolatedPosition = encoder.rate * encoder.stepTime + 0.5 * encoder.accel * encoder.stepTime * encoder.stepTime;
+        if (extrapolatedPosition > 1) {
+            return (encoder.position + 1);
         }
-        else if (extrapolation < -1) {
-            extrapolation = -1;
+        else if (extrapolatedPosition < -1) {
+            return (encoder.position - 1);
         }
-        return (extrapolation + encoder.position);
+        else {
+            return (extrapolatedPosition + encoder.position);
+        }
     }
 #endif
 private:
@@ -344,10 +365,12 @@ private:
 		arg->state = (state >> 2);
 		switch (state) {
 			case 1: case 7: case 8: case 14:
+                arg->previousRate = arg->rate;
                 if (arg->position % 2 == 0) {
                     arg->rate1 = 0.5 / arg->stepTime;
                     if (arg->lastRateTimer == 0) {
                         arg->rate2 = 0;
+                        arg->previousRate = 0;
                     }
                     arg->lastRateTimer = 0;
                 }
@@ -355,18 +378,22 @@ private:
                     arg->rate2 = 0.5 / arg->stepTime;
                     if (arg->lastRateTimer == 1) {
                         arg->rate1 = 0;
+                        arg->previousRate = 0;
                     }
                     arg->lastRateTimer = 1;
                 }
-                arg->stepTime = 0;
                 arg->rate = (arg->rate1 + arg->rate2);
+                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
+                arg->stepTime = 0;
                 arg->position++;
                 return;
 			case 2: case 4: case 11: case 13:
+                arg->previousRate = arg->rate;
                 if (arg->position % 2 != 0) {
                     arg->rate1 = -0.5 / arg->stepTime;
                     if (arg->lastRateTimer == 0) {
                         arg->rate2 = 0;
+                        arg->previousRate = 0;
                     }
                     arg->lastRateTimer = 0;
                 }
@@ -374,41 +401,45 @@ private:
                     arg->rate2 = -0.5 / arg->stepTime;
                     if (arg->lastRateTimer == 1) {
                         arg->rate1 = 0;
+                        arg->previousRate = 0;
                     }
                     arg->lastRateTimer = 1;
                 }
-                arg->stepTime = 0;
                 arg->rate = (arg->rate1 + arg->rate2);
+                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
+                arg->stepTime = 0;
                 arg->position--;
 				return;
             case 3: case 12:
+                arg->previousRate = arg->rate;
                 if (arg->position % 2 == 0) {
                     arg->rate1 = 1 / arg->stepTime;
-                    arg->stepTime = 0;
                     arg->rate2 = arg->rate1;
                     arg->rate = arg->rate1;
                 }
                 else {
                     arg->rate2 = 1 / arg->stepTime;
-                    arg->stepTime = 0;
                     arg->rate1 = arg->rate2;
                     arg->rate = arg->rate2;
                 }
+                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
+                arg->stepTime = 0;
                 arg->position += 2;
 				return;
 			case 6: case 9:
+                arg->previousRate = arg->rate;
                 if (arg->position % 2 != 0) {
                     arg->rate1 = -1 / arg->stepTime;
-                    arg->stepTime = 0;
                     arg->rate2 = arg->rate1;
                     arg->rate = arg->rate1;
                 }
                 else {
                     arg->rate2 = -1 / arg->stepTime;
-                    arg->stepTime = 0;
                     arg->rate1 = arg->rate2;
                     arg->rate = arg->rate2;
                 }
+                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
+                arg->stepTime = 0;
                 arg->position -= 2;
 				return;
 		}
