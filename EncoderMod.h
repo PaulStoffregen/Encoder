@@ -365,22 +365,22 @@ private:
 		arg->state = (state >> 2);
 		switch (state) {
 			case 1: case 7: case 8: case 14:
-                arg->previousRate = arg->rate;
-                if (arg->position % 2 == 0) {
-                    arg->rate1 = 0.5 / arg->stepTime;
-                    if (arg->lastRateTimer == 0) {
-                        arg->rate2 = 0;
-                        arg->previousRate = 0;
+                arg->previousRate = arg->rate;  // remember previous rate for calculating
+                if (arg->position % 2 == 0) {  // if the previous position was even (0 to 1 step)
+                    arg->rate1 = 0.5 / arg->stepTime; // the 0 to 1 step rate is set to rate1
+                    if (arg->lastRateTimer == 0) { // if the 0 to 1 step was the previous one calculated
+                        arg->rate2 = 0; // then the rate2 step was skipped due to a direction change, so set it to zero
+                        arg->previousRate = 0; // previous rate is also set to zero.  there may be a better way but I have yet to think about it
                     }
-                    arg->lastRateTimer = 0;
+                    arg->lastRateTimer = 0; // remember that rate1 was the last one calculated
                 }
-                else {
-                    arg->rate2 = 0.5 / arg->stepTime;
-                    if (arg->lastRateTimer == 1) {
-                        arg->rate1 = 0;
-                        arg->previousRate = 0;
+                else {  // if the previous position was odd (step -1 to 0)
+                    arg->rate2 = 0.5 / arg->stepTime; // the -1 to 0 step rate is set to rate2
+                    if (arg->lastRateTimer == 1) { // if the -1 to 0 step was the previous one calculated
+                        arg->rate1 = 0;  // then rate1 step was skipped due to direction change, so it is set to zero
+                        arg->previousRate = 0; // previous rate is also set to zero.  there may be a better way but I have yet to think about it
                     }
-                    arg->lastRateTimer = 1;
+                    arg->lastRateTimer = 1; // remember that rate2 was the last one calculated
                 }
                 arg->rate = (arg->rate1 + arg->rate2);
                 arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
@@ -389,15 +389,15 @@ private:
                 return;
 			case 2: case 4: case 11: case 13:
                 arg->previousRate = arg->rate;
-                if (arg->position % 2 != 0) {
-                    arg->rate1 = -0.5 / arg->stepTime;
+                if (arg->position % 2 != 0) {  // if the previous position was odd (1 to 0 step)
+                    arg->rate1 = -0.5 / arg->stepTime; // the 1 to 0 step rate is set to rate1
                     if (arg->lastRateTimer == 0) {
                         arg->rate2 = 0;
                         arg->previousRate = 0;
                     }
                     arg->lastRateTimer = 0;
                 }
-                else {
+                else {  // if the previous position was even
                     arg->rate2 = -0.5 / arg->stepTime;
                     if (arg->lastRateTimer == 1) {
                         arg->rate1 = 0;
