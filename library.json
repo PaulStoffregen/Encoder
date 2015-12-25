@@ -1,11 +1,11 @@
 {
-  "name": "Encoder",
+  "name": "EncoderMod",
   "keywords": "encoder, signal, pulse",
   "description": "Encoder counts pulses from quadrature encoded signals, which are commonly available from rotary knobs, motor or shaft sensors and other position sensors",
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/PaulStoffregen/Encoder.git"
+    "url": "https://github.com/QuentinTorg/Encoder"
   },
   "frameworks": "arduino",
   "platforms":

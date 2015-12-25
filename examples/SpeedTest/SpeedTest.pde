@@ -36,7 +36,7 @@
 // It must be defined before Encoder.h is included.
 //#define ENCODER_OPTIMIZE_INTERRUPTS
 
-#include <Encoder.h>
+#include <EncoderMod.h>
 #include "pins_arduino.h"
 
 // Change these two numbers to the pins connected to your encoder
