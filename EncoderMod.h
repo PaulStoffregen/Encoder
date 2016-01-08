@@ -118,6 +118,7 @@ public:
 
 #ifdef ENCODER_USE_INTERRUPTS
 	inline int32_t read() {
+        uint8_t old_SREG = SREG;
 		if (interrupts_in_use < 2) {
 			noInterrupts();
 			update(&encoder);
@@ -125,15 +126,17 @@ public:
 			noInterrupts();
 		}
 		int32_t ret = encoder.position;
-		interrupts();
+        SREG = old_SREG;
 		return ret;
 	}
 	inline void write(int32_t p) {
+        uint8_t old_SREG = SREG;
 		noInterrupts();
 		encoder.position = p;
-		interrupts();
+        SREG = old_SREG;
 	}
     inline float stepRate() {
+        uint8_t old_SREG = SREG;
         if (interrupts_in_use < 2) {
             noInterrupts();
             update(&encoder);
@@ -144,7 +147,7 @@ public:
         float lastRate = encoder.rate;
         float elapsedTime = encoder.stepTime;
         float lastAccel = encoder.accel;
-        interrupts();
+        SREG = old_SREG;
         float extrapolatedPosition = lastRate * elapsedTime + 0.5 * lastAccel * elapsedTime * elapsedTime;
         if (extrapolatedPosition > 1) {
             return (1 / elapsedTime);
@@ -157,6 +160,7 @@ public:
         }
     }
     inline float extrapolate() {
+        uint8_t old_SREG = SREG;
         if (interrupts_in_use < 2) {
             noInterrupts();
             update(&encoder);
@@ -168,7 +172,7 @@ public:
         int32_t lastPosition = encoder.position;
         float extrapolatedPosition = encoder.stepTime;
         float lastAccel = encoder.accel;
-        interrupts();
+        SREG = old_SREG;
         extrapolatedPosition = lastRate * extrapolatedPosition + 0.5 * lastAccel * extrapolatedPosition * extrapolatedPosition;
         if (extrapolatedPosition > 1) {
             return (lastPosition + 1);
