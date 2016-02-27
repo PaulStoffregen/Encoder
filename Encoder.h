@@ -936,6 +936,11 @@ ISR(INT6_vect) { Encoder::update(Encoder::interruptArgs[SCRAMBLE_INT_ORDER(6)]);
 ISR(INT7_vect) { Encoder::update(Encoder::interruptArgs[SCRAMBLE_INT_ORDER(7)]); }
 #endif
 #endif // AVR
+#if defined(attachInterrupt)
+// Don't intefere with other libraries or sketch use of attachInterrupt()
+// https://github.com/PaulStoffregen/Encoder/issues/8
+#undef attachInterrupt
+#endif
 #endif // ENCODER_OPTIMIZE_INTERRUPTS
 
 
