@@ -51,6 +51,8 @@
 #define ENCODER_ARGLIST_SIZE 0
 #endif
 
+#define FILTER_TIME_LIMIT 1000 //uS at 100/255 pwm  we get about 1/0.004 = 250uS/tick so this averages about 4 ticks
+#define MAX_BUFFER_SIZE 100 //This needs to be larger than the max number of ticks that can happen in our filter time limit it needs to be larger so that memory access violations don't occur
 
 
 // All the data needed by interrupts is consolidated into this ugly struct
@@ -64,13 +66,19 @@ typedef struct {
 	IO_REG_TYPE            pin2_bitmask;
 	uint8_t                state;
 	int32_t                position;
-    elapsedMicros stepTime;
-    float rate;
-    float rate1;
-    float rate2;
-    float previousRate;
-    float accel;
-    bool lastRateTimer;
+    //elapsedMicros stepTime1;
+	//elapsedMicros stepTime2;
+	unsigned long stepTime1;
+	unsigned long stepTime2;
+    //float rate;
+    //float rate1;
+    //float rate2;
+    //float previousRate;
+    //float accel;
+    //bool lastRateTimer;
+	signed long uSBuffer[MAX_BUFFER_SIZE];
+	int32_t bufferIndex;
+	int32_t newTicks;
 } Encoder_internal_state_t;
 
 class Encoder
@@ -98,13 +106,17 @@ public:
 		// the initial state
 		delayMicroseconds(2000);
 		uint8_t s = 0;
-        encoder.stepTime = 0;
-        encoder.rate = 0;
-        encoder.rate1 = 0;
-        encoder.rate2 = 0;
-        encoder.previousRate = 0;
-        encoder.accel = 0;
-        encoder.lastRateTimer = 0;
+        encoder.stepTime1 = micros();
+		encoder.stepTime2 = encoder.stepTime1;
+        //encoder.rate = 0;
+        //encoder.rate1 = 0;
+        //encoder.rate2 = 0;
+        //encoder.previousRate = 0;
+        //encoder.accel = 0;
+        //encoder.lastRateTimer = 0;
+		memset(encoder.uSBuffer, 0, MAX_BUFFER_SIZE);
+		encoder.bufferIndex = 0;
+		encoder.newTicks = 0;
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
 		if (DIRECT_PIN_READ(encoder.pin2_register, encoder.pin2_bitmask)) s |= 2;
 		encoder.state = s;
@@ -136,7 +148,7 @@ public:
         SREG = old_SREG;
 	}
     inline float stepRate() {
-        uint8_t old_SREG = SREG;
+        int8_t old_SREG = SREG;
         if (interrupts_in_use < 2) {
             noInterrupts();
             update(&encoder);
@@ -144,22 +156,46 @@ public:
         else {
             noInterrupts();
         }
-        float lastRate = encoder.rate;
-        float elapsedTime = encoder.stepTime;
-        float lastAccel = encoder.accel;
+        //float lastRate = encoder.rate;
+        //float elapsedTime = encoder.stepTime;
+        //float lastAccel = encoder.accel;
+
+		float velocitySum = 0;
+		int index = encoder.bufferIndex;
+		int timeSum = 0;
+		int ticks = 0;
+		
         SREG = old_SREG;
-        float extrapolatedPosition = lastRate * elapsedTime + 0.5 * lastAccel * elapsedTime * elapsedTime;
+		interrupts();
+		
+		while(1){
+			timeSum += encoder.uSBuffer[index];
+
+			if(timeSum > FILTER_TIME_LIMIT){
+				break;
+			}
+			velocitySum += 1.0/(float)encoder.uSBuffer[index]; //Should cache the array index instead of accessing twice
+			ticks++;
+			index = (index - 1) % MAX_BUFFER_SIZE;
+			if(ticks >= MAX_BUFFER_SIZE){
+				break;//We have summed every item in the buffer
+			}
+		}
+		
+		float velocity = velocitySum / (float)ticks;
+		
+        /*float extrapolatedPosition = velocity * timeSum; //+ 0.5 * lastAccel * elapsedTime * elapsedTime;
         if (extrapolatedPosition > 1) {
-            return (1 / elapsedTime);
+            return (1 / timeSum);
         }
         else if (extrapolatedPosition < -1) {
-            return (-1 / elapsedTime);
+            return (-1 / timeSum);
         }
-        else {
-            return (lastRate + lastAccel * elapsedTime);
-        }
+        else {*/
+            return velocity;
+        //}
     }
-    inline float extrapolate() {
+    /*inline float extrapolate() {
         uint8_t old_SREG = SREG;
         if (interrupts_in_use < 2) {
             noInterrupts();
@@ -183,7 +219,7 @@ public:
         else {
             return (extrapolatedPosition + lastPosition);
         }
-    }
+    }*/
 #else
 	inline int32_t read() {
 		update(&encoder);
@@ -367,7 +403,78 @@ private:
 		if (p1val) state |= 4;
 		if (p2val) state |= 8;
 		arg->state = (state >> 2);
+//                           _______         _______       
+//               Pin1 ______|       |_______|       |______ Pin1
+// negative <---         _______         _______         __      --> positive
+//               Pin2 __|       |_______|       |_______|   Pin2
+				//	new	new	old	old
+		//	pin2	pin1	pin2	pin1	Result
+		//	----	----	----	----	------
+		//0	0	0	0	0	no movement
+		//1	0	0	0	1	+1 pin1 edge
+		//2	0	0	1	0	-1 pin2 edge
+		//3	0	0	1	1	+2  (assume pin1 edges only)
+		//4	0	1	0	0	-1 pin1 edge
+		//5	0	1	0	1	no movement
+		//6	0	1	1	0	-2  (assume pin1 edges only)
+		//7	0	1	1	1	+1 pin2 edge
+		//8	1	0	0	0	+1 pin2 edge
+		//9	1	0	0	1	-2  (assume pin1 edges only)
+		//10	1	0	1	0	no movement
+		//11	1	0	1	1	-1 pin1 edge
+		//12	1	1	0	0	+2  (assume pin1 edges only)
+		//13	1	1	0	1	-1 pin2 edge
+		//14	1	1	1	0	+1 pin1 edge
+		//15	1	1	1	1	no movement
+		unsigned long microsTemp = micros();
 		switch (state) {
+			case 1: case 14: //+1 pin1 edge
+				arg->uSBuffer[arg->bufferIndex] = microsTemp - arg->stepTime1;
+				arg->stepTime1 = microsTemp;
+				arg->bufferIndex++;
+				if(arg->bufferIndex > MAX_BUFFER_SIZE){
+					arg->bufferIndex = 0;
+				}
+				//arg->newTicks++;
+				arg->position++;
+				return;
+			
+			case 7: case 8: //+1 pin2 edge
+				arg->uSBuffer[arg->bufferIndex] = microsTemp - arg->stepTime2;
+				arg->stepTime2 = microsTemp;
+				arg->bufferIndex++;
+				if(arg->bufferIndex > MAX_BUFFER_SIZE){
+					arg->bufferIndex = 0;
+				}
+				//arg->newTicks++;*/
+				arg->position++;
+				return;
+			
+			case 2: case 13: //-1 pin2 edge
+				arg->uSBuffer[arg->bufferIndex] = -(microsTemp - arg->stepTime2);
+				arg->stepTime2 = microsTemp;
+				arg->bufferIndex++;
+				if(arg->bufferIndex > MAX_BUFFER_SIZE){
+					arg->bufferIndex = 0;
+				}
+				//arg->newTicks++;*/
+				arg->position--;
+				return;
+			
+			case 4: case 11: //-1 pin1 edge
+				arg->uSBuffer[arg->bufferIndex] = -(microsTemp - arg->stepTime1);
+				arg->stepTime1 = microsTemp;
+				arg->bufferIndex++;
+				if(arg->bufferIndex > MAX_BUFFER_SIZE){
+					arg->bufferIndex = 0;
+				}
+				//arg->newTicks++;*/
+				arg->position--;
+				return;
+			
+			//+2's -2's to come later
+			
+			/*
 			case 1: case 7: case 8: case 14:
                 arg->previousRate = arg->rate;  // remember previous rate for calculating
                 if (arg->position % 2 == 0) {  // if the previous position was even (0 to 1 step)
@@ -446,6 +553,7 @@ private:
                 arg->stepTime = 0;
                 arg->position -= 2;
 				return;
+				*/
 		}
 #endif
 	}
