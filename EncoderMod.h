@@ -51,8 +51,10 @@
 #define ENCODER_ARGLIST_SIZE 0
 #endif
 
-#define FILTER_TIME_LIMIT 1000 //uS at 100/255 pwm  we get about 1/0.004 = 250uS/tick so this averages about 4 ticks
-#define MAX_BUFFER_SIZE 100 //This needs to be larger than the max number of ticks that can happen in our filter time limit it needs to be larger so that memory access violations don't occur
+#define FILTER_TIME_LIMIT 10000 //uS at 100/255 pwm  we get about 1/0.004 = 250uS/tick so this averages about 4 ticks
+#define US_INTERVAL 50 //This must be lower than time difference between ticks will ever be.
+#define FILTER_INTERVALS (FILTER_TIME_LIMIT/US_INTERVAL)
+#define MAX_BUFFER_SIZE 5000 //This needs to be larger than the max number of ticks that can happen in our filter time limit it needs to be larger so that memory access violations don't occur
 
 
 // All the data needed by interrupts is consolidated into this ugly struct
@@ -66,25 +68,17 @@ typedef struct {
 	IO_REG_TYPE            pin2_bitmask;
 	uint8_t                state;
 	int32_t                position;
-    //elapsedMicros stepTime1;
-	//elapsedMicros stepTime2;
 	unsigned long stepTime1;
 	unsigned long stepTime2;
-    //float rate;
-    //float rate1;
-    //float rate2;
-    //float previousRate;
-    //float accel;
-    //bool lastRateTimer;
-	signed long uSBuffer[MAX_BUFFER_SIZE];
+	signed int uSBuffer[MAX_BUFFER_SIZE];
 	int32_t bufferIndex;
 	int32_t newTicks;
+	unsigned long timeOfLastTick;
 } Encoder_internal_state_t;
 
 class Encoder
 {
 public:
-    
     
 	Encoder(uint8_t pin1, uint8_t pin2) {
 		#ifdef INPUT_PULLUP
@@ -108,15 +102,10 @@ public:
 		uint8_t s = 0;
         encoder.stepTime1 = micros();
 		encoder.stepTime2 = encoder.stepTime1;
-        //encoder.rate = 0;
-        //encoder.rate1 = 0;
-        //encoder.rate2 = 0;
-        //encoder.previousRate = 0;
-        //encoder.accel = 0;
-        //encoder.lastRateTimer = 0;
-		memset(encoder.uSBuffer, 0, MAX_BUFFER_SIZE);
+		memset(encoder.uSBuffer, 0, MAX_BUFFER_SIZE*sizeof(int));
 		encoder.bufferIndex = 0;
 		encoder.newTicks = 0;
+		encoder.timeOfLastTick = micros();
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
 		if (DIRECT_PIN_READ(encoder.pin2_register, encoder.pin2_bitmask)) s |= 2;
 		encoder.state = s;
@@ -147,7 +136,8 @@ public:
 		encoder.position = p;
         SREG = old_SREG;
 	}
-    inline float stepRate() {
+	
+	inline float stepRate() {
         int8_t old_SREG = SREG;
         if (interrupts_in_use < 2) {
             noInterrupts();
@@ -156,45 +146,201 @@ public:
         else {
             noInterrupts();
         }
-        //float lastRate = encoder.rate;
-        //float elapsedTime = encoder.stepTime;
-        //float lastAccel = encoder.accel;
 
 		float velocitySum = 0;
-		int index = encoder.bufferIndex;
+		int index = encoder.bufferIndex - 1;
+		if(index < 0){
+			index += MAX_BUFFER_SIZE;
+		}
 		int timeSum = 0;
 		int ticks = 0;
+		unsigned long timeSinceLastTick = micros() - encoder.timeOfLastTick;
+		
+        SREG = old_SREG;
+		interrupts();
+
+		if(encoder.uSBuffer[index] == 0){
+			//The buffer is not initialized in the first position so just stop with what we have now. there has never been a tick
+			return 0.0;
+		}
+		//int sumIntervals = timeSinceLastTick/US_INTERVAL;
+		int sumIntervals = 0;
+		if(timeSinceLastTick > FILTER_TIME_LIMIT){
+			return 0.0;
+		}
+		
+		while(1){
+			//Get how many discrete intervals
+			if(encoder.uSBuffer[index] == 0){
+				//The buffer is not initialized so just stop with what we have now.
+				break;
+			}
+			int intervals = abs(encoder.uSBuffer[index])/US_INTERVAL;
+			sumIntervals += intervals;
+			if(sumIntervals <= FILTER_INTERVALS){
+				velocitySum += intervals * (2.0/(float)encoder.uSBuffer[index]);
+			} else {
+				velocitySum += (intervals - (sumIntervals - FILTER_INTERVALS)) * (2.0/(float)encoder.uSBuffer[index]);
+				break;
+			}
+			index--;
+			if(index < 0 ){
+				index += MAX_BUFFER_SIZE;
+			}
+		}
+		float velocity = velocitySum / (float)FILTER_INTERVALS;
+        return velocity;
+    }
+	
+	
+	inline float stepRateOptimized(){
+		int8_t old_SREG = SREG;
+        if (interrupts_in_use < 2) {
+            noInterrupts();
+            update(&encoder);
+        }
+        else {
+            noInterrupts();
+        }
+
+		float static velocitySum = 0;
+		int static timeSum = 0;
+		//int static oldTicks = 0;
+		int static ticksInAverage = 0;
+		//int ticks = 0;
+		int bufferIndex = encoder.bufferIndex - 1;
+		if(bufferIndex < 0){
+			bufferIndex+=MAX_BUFFER_SIZE;
+		}
+		int newTicks = encoder.newTicks;
+		encoder.newTicks = 0;
 		
         SREG = old_SREG;
 		interrupts();
 		
-		while(1){
-			timeSum += encoder.uSBuffer[index];
+		//Only do this if we have newTicks
+		if(newTicks > 0){
+			//Add the all the newticks
+			int stopIndex = bufferIndex - newTicks; //We are going backwards, stop at the index where the newticks stop
+			if(stopIndex < 0){
+				stopIndex += MAX_BUFFER_SIZE;
+			}
+			int i = bufferIndex;
+			//timeSum = 0;
+			//Serial.print("Newticks: ");
+			//Serial.print(newTicks);
+			//Serial.print("    ");
+			//Serial.println();
+			//Serial.print("velocitysum before:");
+			//Serial.println(velocitySum);
+			//Serial.print("    ");
+			for(int j = 0; j < newTicks; j++){
+				timeSum += abs(encoder.uSBuffer[i]); //Add the time to the buffer
+				velocitySum += 1.0/(float)encoder.uSBuffer[i]; //Should catch this access to uSBuffer, also this is just adding the newvelocities to the sum this could lose precision on the float
+				//Serial.print("velocitysum:");
+				//Serial.print(velocitySum);
+				//Serial.print("    ");
+				//Serial.print("added:");
+				//Serial.println(1.0/(float)encoder.uSBuffer[i]);
+				/*if(abs(velocitySum) > 100){
+					int temp = encoder.uSBuffer[i];
+					//Serial.print("    ");
+					//delay(5000);
+					Serial.print("index:");
+					Serial.print(i);
+					Serial.print("   ");
+					Serial.print("buffer value:");
+					Serial.print(temp);
+					Serial.print("    ");
+					Serial.print("velocitysum:");
+					Serial.print(velocitySum);
+					Serial.print("    ");
+					Serial.print("added:");
+					Serial.print(1.0/temp);
+					Serial.print("    ");
+					delay(5000);
+					/*for(int i = 0; i < 100000; i++){
+						Serial.println(temp);
+						delay(10);
+					}*/
+				//}
+				//if(abs(velocitySum) > 10000000000){
+				//	velocitySum = 0; //Should catch this access to uSBuffer, also this is just adding the newvelocities to the sum this could lose precision on the float
+				//}
+				ticksInAverage++; //Increase the number of ticks
+				i--;
+				if(i <= stopIndex){
+					break;
+				}
+				if(i < 0){
+					i += MAX_BUFFER_SIZE;
+				}
+			}
+			//velocitySum = 0;
+			//Serial.print("velocitysum:");
+			//Serial.print(velocitySum);
+			//Serial.print("    ");
+			/*if(abs(velocitySum) > 10000000000){
+				Serial.print("BAD   ");
+			}*/
+			
+			
+			if(ticksInAverage > MAX_BUFFER_SIZE){
+				ticksInAverage = MAX_BUFFER_SIZE;
+			}
 
-			if(timeSum > FILTER_TIME_LIMIT){
-				break;
+			int startIndex = bufferIndex - ticksInAverage;
+			//Serial.print("start:");
+			//Serial.print(startIndex);
+			//Serial.print("   ");
+			if(startIndex < 0){
+				startIndex += MAX_BUFFER_SIZE;
 			}
-			velocitySum += 1.0/(float)encoder.uSBuffer[index]; //Should cache the array index instead of accessing twice
-			ticks++;
-			index = (index - 1) % MAX_BUFFER_SIZE;
-			if(ticks >= MAX_BUFFER_SIZE){
-				break;//We have summed every item in the buffer
+			/*Serial.print("start:");
+			Serial.print(startIndex);
+			Serial.print("   ");
+			Serial.print(ticksInAverage);
+			Serial.print("   ");
+			//Serial.print(timeSum);
+			//Serial.print("   ");*/
+			int loopcounts = 0;
+			int totalTicks = ticksInAverage;
+			for(int i = 0; i < totalTicks; i++){
+			//for(int i = startIndex; i < bufferIndex; i = (i+1)%MAX_BUFFER_SIZE) { //Stop just before our current buffer index if we do get that far
+				loopcounts++;
+				if(timeSum < FILTER_TIME_LIMIT){ //This is our normal case. Stop subtracting when we are back within bounds
+					/*Serial.print("TIMELIMIT:");
+					Serial.print(ticksInAverage);
+					Serial.print("    ");
+					Serial.print(timeSum);
+					Serial.print("   ");*/
+					break;
+				}
+
+				int index = bufferIndex-totalTicks+i;
+				if(index < 0)
+					index+=MAX_BUFFER_SIZE;
+				timeSum -= abs(encoder.uSBuffer[index]); //remove the time;
+				ticksInAverage--; //We have less ticks now
+				velocitySum -= 1.0/(float)encoder.uSBuffer[index]; //Again this access could be cached
 			}
+			/*Serial.print("loops:");
+			Serial.print(loopcounts);
+			Serial.print("    ");
+			Serial.print(ticksInAverage);
+			Serial.print("   ");
+			Serial.print(timeSum);
+			Serial.print("   ");*/
 		}
 		
-		float velocity = velocitySum / (float)ticks;
-		
-        /*float extrapolatedPosition = velocity * timeSum; //+ 0.5 * lastAccel * elapsedTime * elapsedTime;
-        if (extrapolatedPosition > 1) {
-            return (1 / timeSum);
-        }
-        else if (extrapolatedPosition < -1) {
-            return (-1 / timeSum);
-        }
-        else {*/
-            return velocity;
-        //}
-    }
+		float velocity = velocitySum / (float)(ticksInAverage/2.0);
+		Serial.print("ticksinAverage: ");
+		Serial.print(ticksInAverage);
+		Serial.print("   ");
+		//Serial.print("VELOCITY: ");
+		//Serial.println(velocity * 10000);
+        return velocity;
+	}
     /*inline float extrapolate() {
         uint8_t old_SREG = SREG;
         if (interrupts_in_use < 2) {
@@ -427,48 +573,49 @@ private:
 		//14	1	1	1	0	+1 pin1 edge
 		//15	1	1	1	1	no movement
 		unsigned long microsTemp = micros();
+		arg->timeOfLastTick = microsTemp;
 		switch (state) {
 			case 1: case 14: //+1 pin1 edge
 				arg->uSBuffer[arg->bufferIndex] = microsTemp - arg->stepTime1;
-				arg->stepTime1 = microsTemp;
 				arg->bufferIndex++;
-				if(arg->bufferIndex > MAX_BUFFER_SIZE){
+				arg->stepTime1 = microsTemp;
+				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
 					arg->bufferIndex = 0;
 				}
-				//arg->newTicks++;
+				arg->newTicks++;
 				arg->position++;
 				return;
 			
 			case 7: case 8: //+1 pin2 edge
 				arg->uSBuffer[arg->bufferIndex] = microsTemp - arg->stepTime2;
-				arg->stepTime2 = microsTemp;
 				arg->bufferIndex++;
-				if(arg->bufferIndex > MAX_BUFFER_SIZE){
+				arg->stepTime2 = microsTemp;
+				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
 					arg->bufferIndex = 0;
 				}
-				//arg->newTicks++;*/
+				arg->newTicks++;
 				arg->position++;
 				return;
 			
 			case 2: case 13: //-1 pin2 edge
 				arg->uSBuffer[arg->bufferIndex] = -(microsTemp - arg->stepTime2);
-				arg->stepTime2 = microsTemp;
 				arg->bufferIndex++;
-				if(arg->bufferIndex > MAX_BUFFER_SIZE){
+				arg->stepTime2 = microsTemp;
+				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
 					arg->bufferIndex = 0;
 				}
-				//arg->newTicks++;*/
+				arg->newTicks++;
 				arg->position--;
 				return;
 			
 			case 4: case 11: //-1 pin1 edge
 				arg->uSBuffer[arg->bufferIndex] = -(microsTemp - arg->stepTime1);
-				arg->stepTime1 = microsTemp;
 				arg->bufferIndex++;
-				if(arg->bufferIndex > MAX_BUFFER_SIZE){
+				arg->stepTime1 = microsTemp;
+				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
 					arg->bufferIndex = 0;
 				}
-				//arg->newTicks++;*/
+				arg->newTicks++;
 				arg->position--;
 				return;
 			
