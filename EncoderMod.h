@@ -191,157 +191,8 @@ public:
 		float velocity = velocitySum / (float)FILTER_INTERVALS;
         return velocity;
     }
-	
-	
-	inline float stepRateOptimized(){
-		int8_t old_SREG = SREG;
-        if (interrupts_in_use < 2) {
-            noInterrupts();
-            update(&encoder);
-        }
-        else {
-            noInterrupts();
-        }
-
-		float static velocitySum = 0;
-		int static timeSum = 0;
-		//int static oldTicks = 0;
-		int static ticksInAverage = 0;
-		//int ticks = 0;
-		int bufferIndex = encoder.bufferIndex - 1;
-		if(bufferIndex < 0){
-			bufferIndex+=MAX_BUFFER_SIZE;
-		}
-		int newTicks = encoder.newTicks;
-		encoder.newTicks = 0;
-		
-        SREG = old_SREG;
-		interrupts();
-		
-		//Only do this if we have newTicks
-		if(newTicks > 0){
-			//Add the all the newticks
-			int stopIndex = bufferIndex - newTicks; //We are going backwards, stop at the index where the newticks stop
-			if(stopIndex < 0){
-				stopIndex += MAX_BUFFER_SIZE;
-			}
-			int i = bufferIndex;
-			//timeSum = 0;
-			//Serial.print("Newticks: ");
-			//Serial.print(newTicks);
-			//Serial.print("    ");
-			//Serial.println();
-			//Serial.print("velocitysum before:");
-			//Serial.println(velocitySum);
-			//Serial.print("    ");
-			for(int j = 0; j < newTicks; j++){
-				timeSum += abs(encoder.uSBuffer[i]); //Add the time to the buffer
-				velocitySum += 1.0/(float)encoder.uSBuffer[i]; //Should catch this access to uSBuffer, also this is just adding the newvelocities to the sum this could lose precision on the float
-				//Serial.print("velocitysum:");
-				//Serial.print(velocitySum);
-				//Serial.print("    ");
-				//Serial.print("added:");
-				//Serial.println(1.0/(float)encoder.uSBuffer[i]);
-				/*if(abs(velocitySum) > 100){
-					int temp = encoder.uSBuffer[i];
-					//Serial.print("    ");
-					//delay(5000);
-					Serial.print("index:");
-					Serial.print(i);
-					Serial.print("   ");
-					Serial.print("buffer value:");
-					Serial.print(temp);
-					Serial.print("    ");
-					Serial.print("velocitysum:");
-					Serial.print(velocitySum);
-					Serial.print("    ");
-					Serial.print("added:");
-					Serial.print(1.0/temp);
-					Serial.print("    ");
-					delay(5000);
-					/*for(int i = 0; i < 100000; i++){
-						Serial.println(temp);
-						delay(10);
-					}*/
-				//}
-				//if(abs(velocitySum) > 10000000000){
-				//	velocitySum = 0; //Should catch this access to uSBuffer, also this is just adding the newvelocities to the sum this could lose precision on the float
-				//}
-				ticksInAverage++; //Increase the number of ticks
-				i--;
-				if(i <= stopIndex){
-					break;
-				}
-				if(i < 0){
-					i += MAX_BUFFER_SIZE;
-				}
-			}
-			//velocitySum = 0;
-			//Serial.print("velocitysum:");
-			//Serial.print(velocitySum);
-			//Serial.print("    ");
-			/*if(abs(velocitySum) > 10000000000){
-				Serial.print("BAD   ");
-			}*/
-			
-			
-			if(ticksInAverage > MAX_BUFFER_SIZE){
-				ticksInAverage = MAX_BUFFER_SIZE;
-			}
-
-			int startIndex = bufferIndex - ticksInAverage;
-			//Serial.print("start:");
-			//Serial.print(startIndex);
-			//Serial.print("   ");
-			if(startIndex < 0){
-				startIndex += MAX_BUFFER_SIZE;
-			}
-			/*Serial.print("start:");
-			Serial.print(startIndex);
-			Serial.print("   ");
-			Serial.print(ticksInAverage);
-			Serial.print("   ");
-			//Serial.print(timeSum);
-			//Serial.print("   ");*/
-			int loopcounts = 0;
-			int totalTicks = ticksInAverage;
-			for(int i = 0; i < totalTicks; i++){
-			//for(int i = startIndex; i < bufferIndex; i = (i+1)%MAX_BUFFER_SIZE) { //Stop just before our current buffer index if we do get that far
-				loopcounts++;
-				if(timeSum < FILTER_TIME_LIMIT){ //This is our normal case. Stop subtracting when we are back within bounds
-					/*Serial.print("TIMELIMIT:");
-					Serial.print(ticksInAverage);
-					Serial.print("    ");
-					Serial.print(timeSum);
-					Serial.print("   ");*/
-					break;
-				}
-
-				int index = bufferIndex-totalTicks+i;
-				if(index < 0)
-					index+=MAX_BUFFER_SIZE;
-				timeSum -= abs(encoder.uSBuffer[index]); //remove the time;
-				ticksInAverage--; //We have less ticks now
-				velocitySum -= 1.0/(float)encoder.uSBuffer[index]; //Again this access could be cached
-			}
-			/*Serial.print("loops:");
-			Serial.print(loopcounts);
-			Serial.print("    ");
-			Serial.print(ticksInAverage);
-			Serial.print("   ");
-			Serial.print(timeSum);
-			Serial.print("   ");*/
-		}
-		
-		float velocity = velocitySum / (float)(ticksInAverage/2.0);
-		Serial.print("ticksinAverage: ");
-		Serial.print(ticksInAverage);
-		Serial.print("   ");
-		//Serial.print("VELOCITY: ");
-		//Serial.println(velocity * 10000);
-        return velocity;
-	}
-    /*inline float extrapolate() {
+    
+	inline float extrapolate() {
         uint8_t old_SREG = SREG;
         if (interrupts_in_use < 2) {
             noInterrupts();
@@ -350,12 +201,12 @@ public:
         else {
             noInterrupts();
         }
-        float lastRate = encoder.rate;
+        float lastRate = stepRate();
         int32_t lastPosition = encoder.position;
-        float extrapolatedPosition = encoder.stepTime;
-        float lastAccel = encoder.accel;
+		unsigned long timeSinceLastTick = micros() - encoder.timeOfLastTick;
         SREG = old_SREG;
-        extrapolatedPosition = lastRate * extrapolatedPosition + 0.5 * lastAccel * extrapolatedPosition * extrapolatedPosition;
+
+        float extrapolatedPosition = lastRate * timeSinceLastTick;
         if (extrapolatedPosition > 1) {
             return (lastPosition + 1);
         }
@@ -365,7 +216,7 @@ public:
         else {
             return (extrapolatedPosition + lastPosition);
         }
-    }*/
+    }
 #else
 	inline int32_t read() {
 		update(&encoder);
@@ -559,7 +410,7 @@ private:
 		//0	0	0	0	0	no movement
 		//1	0	0	0	1	+1 pin1 edge
 		//2	0	0	1	0	-1 pin2 edge
-		//3	0	0	1	1	+2  (assume pin1 edges only)
+		//3	0	0	1	1	+2  (assume pin1 edges only) 
 		//4	0	1	0	0	-1 pin1 edge
 		//5	0	1	0	1	no movement
 		//6	0	1	1	0	-2  (assume pin1 edges only)
@@ -582,7 +433,7 @@ private:
 				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
 					arg->bufferIndex = 0;
 				}
-				arg->newTicks++;
+				//arg->newTicks++;
 				arg->position++;
 				return;
 			
@@ -593,7 +444,7 @@ private:
 				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
 					arg->bufferIndex = 0;
 				}
-				arg->newTicks++;
+				//arg->newTicks++;
 				arg->position++;
 				return;
 			
@@ -604,7 +455,7 @@ private:
 				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
 					arg->bufferIndex = 0;
 				}
-				arg->newTicks++;
+				//arg->newTicks++;
 				arg->position--;
 				return;
 			
@@ -615,92 +466,29 @@ private:
 				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
 					arg->bufferIndex = 0;
 				}
-				arg->newTicks++;
+				//arg->newTicks++;
 				arg->position--;
 				return;
 			
 			//+2's -2's to come later
-			
+			//Because you can't know which direction you were going
+			//You will have to infer it from the last time in the buffer
+			//Meaning finding out if its less than or more than 0.
+			//Based on that result you will place the non corrupted timer in
+			//The timebuffer 3 times.
+			//One for the edge you measured correctly. One for the corrupted timer. One for the next corrupted timer which could never be correct.
+			//You don't need to put it in 3 times, just multiply it by three by shifting over one bit and adding itself.
+			//Set a flag for the next update of the corrupted timer so it knows not to add itself and to reset itself.
 			/*
-			case 1: case 7: case 8: case 14:
-                arg->previousRate = arg->rate;  // remember previous rate for calculating
-                if (arg->position % 2 == 0) {  // if the previous position was even (0 to 1 step)
-                    arg->rate1 = 0.5 / arg->stepTime; // the 0 to 1 step rate is set to rate1
-                    if (arg->lastRateTimer == 0) { // if the 0 to 1 step was the previous one calculated
-                        arg->rate2 = 0; // then the rate2 step was skipped due to a direction change, so set it to zero
-                        arg->previousRate = 0; // previous rate is also set to zero.  there may be a better way but I have yet to think about it
-                    }
-                    arg->lastRateTimer = 0; // remember that rate1 was the last one calculated
-                }
-                else {  // if the previous position was odd (step -1 to 0)
-                    arg->rate2 = 0.5 / arg->stepTime; // the -1 to 0 step rate is set to rate2
-                    if (arg->lastRateTimer == 1) { // if the -1 to 0 step was the previous one calculated
-                        arg->rate1 = 0;  // then rate1 step was skipped due to direction change, so it is set to zero
-                        arg->previousRate = 0; // previous rate is also set to zero.  there may be a better way but I have yet to think about it
-                    }
-                    arg->lastRateTimer = 1; // remember that rate2 was the last one calculated
-                }
-                arg->rate = (arg->rate1 + arg->rate2);
-                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
-                arg->stepTime = 0;
-                arg->position++;
-                return;
-			case 2: case 4: case 11: case 13:
-                arg->previousRate = arg->rate;
-                if (arg->position % 2 != 0) {  // if the previous position was odd (1 to 0 step)
-                    arg->rate1 = -0.5 / arg->stepTime; // the 1 to 0 step rate is set to rate1
-                    if (arg->lastRateTimer == 0) {
-                        arg->rate2 = 0;
-                        arg->previousRate = 0;
-                    }
-                    arg->lastRateTimer = 0;
-                }
-                else {  // if the previous position was even
-                    arg->rate2 = -0.5 / arg->stepTime;
-                    if (arg->lastRateTimer == 1) {
-                        arg->rate1 = 0;
-                        arg->previousRate = 0;
-                    }
-                    arg->lastRateTimer = 1;
-                }
-                arg->rate = (arg->rate1 + arg->rate2);
-                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
-                arg->stepTime = 0;
-                arg->position--;
-				return;
-            case 3: case 12:
-                arg->previousRate = arg->rate;
-                if (arg->position % 2 == 0) {
-                    arg->rate1 = 1 / arg->stepTime;
-                    arg->rate2 = arg->rate1;
-                    arg->rate = arg->rate1;
-                }
-                else {
-                    arg->rate2 = 1 / arg->stepTime;
-                    arg->rate1 = arg->rate2;
-                    arg->rate = arg->rate2;
-                }
-                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
-                arg->stepTime = 0;
+            case 3: case 12: //+2
                 arg->position += 2;
 				return;
 			case 6: case 9:
-                arg->previousRate = arg->rate;
-                if (arg->position % 2 != 0) {
-                    arg->rate1 = -1 / arg->stepTime;
-                    arg->rate2 = arg->rate1;
-                    arg->rate = arg->rate1;
-                }
-                else {
-                    arg->rate2 = -1 / arg->stepTime;
-                    arg->rate1 = arg->rate2;
-                    arg->rate = arg->rate2;
-                }
-                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
-                arg->stepTime = 0;
+
                 arg->position -= 2;
 				return;
 				*/
+
 		}
 #endif
 	}
