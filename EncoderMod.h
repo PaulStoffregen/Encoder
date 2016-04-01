@@ -152,8 +152,6 @@ public:
 		if(index < 0){
 			index += MAX_BUFFER_SIZE;
 		}
-		int timeSum = 0;
-		int ticks = 0;
 		unsigned long timeSinceLastTick = micros() - encoder.timeOfLastTick;
 		
         SREG = old_SREG;
