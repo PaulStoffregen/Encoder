@@ -51,6 +51,10 @@
 #define ENCODER_ARGLIST_SIZE 0
 #endif
 
+#define FILTER_TIME_LIMIT 10000 //uS at 100/255 pwm  we get about 1/0.004 = 250uS/tick so this averages about 4 ticks
+#define US_INTERVAL 50 //This must be lower than time difference between ticks will ever be.
+#define FILTER_INTERVALS (FILTER_TIME_LIMIT/US_INTERVAL)
+#define MAX_BUFFER_SIZE 5000 //This needs to be larger than the max number of ticks that can happen in our filter time limit it needs to be larger so that memory access violations don't occur
 
 
 // All the data needed by interrupts is consolidated into this ugly struct
@@ -64,19 +68,17 @@ typedef struct {
 	IO_REG_TYPE            pin2_bitmask;
 	uint8_t                state;
 	int32_t                position;
-    elapsedMicros stepTime;
-    float rate;
-    float rate1;
-    float rate2;
-    float previousRate;
-    float accel;
-    bool lastRateTimer;
+	unsigned long stepTime1;
+	unsigned long stepTime2;
+	signed int uSBuffer[MAX_BUFFER_SIZE];
+	int32_t bufferIndex;
+	int32_t newTicks;
+	unsigned long timeOfLastTick;
 } Encoder_internal_state_t;
 
 class Encoder
 {
 public:
-    
     
 	Encoder(uint8_t pin1, uint8_t pin2) {
 		#ifdef INPUT_PULLUP
@@ -98,13 +100,12 @@ public:
 		// the initial state
 		delayMicroseconds(2000);
 		uint8_t s = 0;
-        encoder.stepTime = 0;
-        encoder.rate = 0;
-        encoder.rate1 = 0;
-        encoder.rate2 = 0;
-        encoder.previousRate = 0;
-        encoder.accel = 0;
-        encoder.lastRateTimer = 0;
+        encoder.stepTime1 = micros();
+		encoder.stepTime2 = encoder.stepTime1;
+		memset(encoder.uSBuffer, 0, MAX_BUFFER_SIZE*sizeof(int));
+		encoder.bufferIndex = 0;
+		encoder.newTicks = 0;
+		encoder.timeOfLastTick = micros();
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
 		if (DIRECT_PIN_READ(encoder.pin2_register, encoder.pin2_bitmask)) s |= 2;
 		encoder.state = s;
@@ -135,8 +136,9 @@ public:
 		encoder.position = p;
         SREG = old_SREG;
 	}
-    inline float stepRate() {
-        uint8_t old_SREG = SREG;
+	
+	inline float stepRate() {
+        int8_t old_SREG = SREG;
         if (interrupts_in_use < 2) {
             noInterrupts();
             update(&encoder);
@@ -144,22 +146,50 @@ public:
         else {
             noInterrupts();
         }
-        float lastRate = encoder.rate;
-        float elapsedTime = encoder.stepTime;
-        float lastAccel = encoder.accel;
+
+		float velocitySum = 0;
+		int index = encoder.bufferIndex - 1;
+		if(index < 0){
+			index += MAX_BUFFER_SIZE;
+		}
+		unsigned long timeSinceLastTick = micros() - encoder.timeOfLastTick;
+		
         SREG = old_SREG;
-        float extrapolatedPosition = lastRate * elapsedTime + 0.5 * lastAccel * elapsedTime * elapsedTime;
-        if (extrapolatedPosition > 1) {
-            return (1 / elapsedTime);
-        }
-        else if (extrapolatedPosition < -1) {
-            return (-1 / elapsedTime);
-        }
-        else {
-            return (lastRate + lastAccel * elapsedTime);
-        }
+
+		if(encoder.uSBuffer[index] == 0){
+			//The buffer is not initialized in the first position so just stop with what we have now. there has never been a tick
+			return 0.0;
+		}
+		//int sumIntervals = timeSinceLastTick/US_INTERVAL;
+		int sumIntervals = 0;
+		if(timeSinceLastTick > FILTER_TIME_LIMIT){
+			return 0.0;
+		}
+		
+		while(1){
+			//Get how many discrete intervals
+			if(encoder.uSBuffer[index] == 0){
+				//The buffer is not initialized so just stop with what we have now.
+				break;
+			}
+			int intervals = abs(encoder.uSBuffer[index])/US_INTERVAL;
+			sumIntervals += intervals;
+			if(sumIntervals <= FILTER_INTERVALS){
+				velocitySum += intervals * (2.0/(float)encoder.uSBuffer[index]);
+			} else {
+				velocitySum += (intervals - (sumIntervals - FILTER_INTERVALS)) * (2.0/(float)encoder.uSBuffer[index]);
+				break;
+			}
+			index--;
+			if(index < 0 ){
+				index += MAX_BUFFER_SIZE;
+			}
+		}
+		float velocity = velocitySum / (float)FILTER_INTERVALS;
+        return velocity;
     }
-    inline float extrapolate() {
+    
+	inline float extrapolate() {
         uint8_t old_SREG = SREG;
         if (interrupts_in_use < 2) {
             noInterrupts();
@@ -168,12 +198,12 @@ public:
         else {
             noInterrupts();
         }
-        float lastRate = encoder.rate;
+        float lastRate = stepRate();
         int32_t lastPosition = encoder.position;
-        float extrapolatedPosition = encoder.stepTime;
-        float lastAccel = encoder.accel;
+		unsigned long timeSinceLastTick = micros() - encoder.timeOfLastTick;
         SREG = old_SREG;
-        extrapolatedPosition = lastRate * extrapolatedPosition + 0.5 * lastAccel * extrapolatedPosition * extrapolatedPosition;
+
+        float extrapolatedPosition = lastRate * timeSinceLastTick;
         if (extrapolatedPosition > 1) {
             return (lastPosition + 1);
         }
@@ -367,85 +397,95 @@ private:
 		if (p1val) state |= 4;
 		if (p2val) state |= 8;
 		arg->state = (state >> 2);
+//                           _______         _______       
+//               Pin1 ______|       |_______|       |______ Pin1
+// negative <---         _______         _______         __      --> positive
+//               Pin2 __|       |_______|       |_______|   Pin2
+				//	new	new	old	old
+		//	pin2	pin1	pin2	pin1	Result
+		//	----	----	----	----	------
+		//0	0	0	0	0	no movement
+		//1	0	0	0	1	+1 pin1 edge
+		//2	0	0	1	0	-1 pin2 edge
+		//3	0	0	1	1	+2  (assume pin1 edges only) 
+		//4	0	1	0	0	-1 pin1 edge
+		//5	0	1	0	1	no movement
+		//6	0	1	1	0	-2  (assume pin1 edges only)
+		//7	0	1	1	1	+1 pin2 edge
+		//8	1	0	0	0	+1 pin2 edge
+		//9	1	0	0	1	-2  (assume pin1 edges only)
+		//10	1	0	1	0	no movement
+		//11	1	0	1	1	-1 pin1 edge
+		//12	1	1	0	0	+2  (assume pin1 edges only)
+		//13	1	1	0	1	-1 pin2 edge
+		//14	1	1	1	0	+1 pin1 edge
+		//15	1	1	1	1	no movement
+		unsigned long microsTemp = micros();
+		arg->timeOfLastTick = microsTemp;
 		switch (state) {
-			case 1: case 7: case 8: case 14:
-                arg->previousRate = arg->rate;  // remember previous rate for calculating
-                if (arg->position % 2 == 0) {  // if the previous position was even (0 to 1 step)
-                    arg->rate1 = 0.5 / arg->stepTime; // the 0 to 1 step rate is set to rate1
-                    if (arg->lastRateTimer == 0) { // if the 0 to 1 step was the previous one calculated
-                        arg->rate2 = 0; // then the rate2 step was skipped due to a direction change, so set it to zero
-                        arg->previousRate = 0; // previous rate is also set to zero.  there may be a better way but I have yet to think about it
-                    }
-                    arg->lastRateTimer = 0; // remember that rate1 was the last one calculated
-                }
-                else {  // if the previous position was odd (step -1 to 0)
-                    arg->rate2 = 0.5 / arg->stepTime; // the -1 to 0 step rate is set to rate2
-                    if (arg->lastRateTimer == 1) { // if the -1 to 0 step was the previous one calculated
-                        arg->rate1 = 0;  // then rate1 step was skipped due to direction change, so it is set to zero
-                        arg->previousRate = 0; // previous rate is also set to zero.  there may be a better way but I have yet to think about it
-                    }
-                    arg->lastRateTimer = 1; // remember that rate2 was the last one calculated
-                }
-                arg->rate = (arg->rate1 + arg->rate2);
-                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
-                arg->stepTime = 0;
-                arg->position++;
-                return;
-			case 2: case 4: case 11: case 13:
-                arg->previousRate = arg->rate;
-                if (arg->position % 2 != 0) {  // if the previous position was odd (1 to 0 step)
-                    arg->rate1 = -0.5 / arg->stepTime; // the 1 to 0 step rate is set to rate1
-                    if (arg->lastRateTimer == 0) {
-                        arg->rate2 = 0;
-                        arg->previousRate = 0;
-                    }
-                    arg->lastRateTimer = 0;
-                }
-                else {  // if the previous position was even
-                    arg->rate2 = -0.5 / arg->stepTime;
-                    if (arg->lastRateTimer == 1) {
-                        arg->rate1 = 0;
-                        arg->previousRate = 0;
-                    }
-                    arg->lastRateTimer = 1;
-                }
-                arg->rate = (arg->rate1 + arg->rate2);
-                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
-                arg->stepTime = 0;
-                arg->position--;
+			case 1: case 14: //+1 pin1 edge
+				arg->uSBuffer[arg->bufferIndex] = microsTemp - arg->stepTime1;
+				arg->bufferIndex++;
+				arg->stepTime1 = microsTemp;
+				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
+					arg->bufferIndex = 0;
+				}
+				//arg->newTicks++;
+				arg->position++;
 				return;
-            case 3: case 12:
-                arg->previousRate = arg->rate;
-                if (arg->position % 2 == 0) {
-                    arg->rate1 = 1 / arg->stepTime;
-                    arg->rate2 = arg->rate1;
-                    arg->rate = arg->rate1;
-                }
-                else {
-                    arg->rate2 = 1 / arg->stepTime;
-                    arg->rate1 = arg->rate2;
-                    arg->rate = arg->rate2;
-                }
-                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
-                arg->stepTime = 0;
+			
+			case 7: case 8: //+1 pin2 edge
+				arg->uSBuffer[arg->bufferIndex] = microsTemp - arg->stepTime2;
+				arg->bufferIndex++;
+				arg->stepTime2 = microsTemp;
+				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
+					arg->bufferIndex = 0;
+				}
+				//arg->newTicks++;
+				arg->position++;
+				return;
+			
+			case 2: case 13: //-1 pin2 edge
+				arg->uSBuffer[arg->bufferIndex] = -(microsTemp - arg->stepTime2);
+				arg->bufferIndex++;
+				arg->stepTime2 = microsTemp;
+				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
+					arg->bufferIndex = 0;
+				}
+				//arg->newTicks++;
+				arg->position--;
+				return;
+			
+			case 4: case 11: //-1 pin1 edge
+				arg->uSBuffer[arg->bufferIndex] = -(microsTemp - arg->stepTime1);
+				arg->bufferIndex++;
+				arg->stepTime1 = microsTemp;
+				if(arg->bufferIndex >= MAX_BUFFER_SIZE){
+					arg->bufferIndex = 0;
+				}
+				//arg->newTicks++;
+				arg->position--;
+				return;
+			
+			//+2's -2's to come later
+			//Because you can't know which direction you were going
+			//You will have to infer it from the last time in the buffer
+			//Meaning finding out if its less than or more than 0.
+			//Based on that result you will place the non corrupted timer in
+			//The timebuffer 3 times.
+			//One for the edge you measured correctly. One for the corrupted timer. One for the next corrupted timer which could never be correct.
+			//You don't need to put it in 3 times, just multiply it by three by shifting over one bit and adding itself.
+			//Set a flag for the next update of the corrupted timer so it knows not to add itself and to reset itself.
+			/*
+            case 3: case 12: //+2
                 arg->position += 2;
 				return;
 			case 6: case 9:
-                arg->previousRate = arg->rate;
-                if (arg->position % 2 != 0) {
-                    arg->rate1 = -1 / arg->stepTime;
-                    arg->rate2 = arg->rate1;
-                    arg->rate = arg->rate1;
-                }
-                else {
-                    arg->rate2 = -1 / arg->stepTime;
-                    arg->rate1 = arg->rate2;
-                    arg->rate = arg->rate2;
-                }
-                arg->accel = (arg->rate - arg->previousRate) / arg->stepTime;
-                arg->stepTime = 0;
+
                 arg->position -= 2;
 				return;
+				*/
+
 		}
 #endif
 	}
