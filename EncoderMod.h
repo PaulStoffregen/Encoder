@@ -157,7 +157,6 @@ public:
 		unsigned long timeSinceLastTick = micros() - encoder.timeOfLastTick;
 		
         SREG = old_SREG;
-		interrupts();
 
 		if(encoder.uSBuffer[index] == 0){
 			//The buffer is not initialized in the first position so just stop with what we have now. there has never been a tick
