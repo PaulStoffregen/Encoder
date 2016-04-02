@@ -166,7 +166,6 @@ public:
 			return 0.0;
 		}
 		
-		int ticksInFilter = 0;
 		while(1){
 			//Get how many discrete intervals
 			if(encoder.uSBuffer[index] == 0){
@@ -175,7 +174,6 @@ public:
 			}
 			int intervals = abs(encoder.uSBuffer[index])/US_INTERVAL;
 			sumIntervals += intervals;
-			ticksInFilter++;
 			if(sumIntervals <= FILTER_INTERVALS){
 				velocitySum += intervals * (2.0/(float)encoder.uSBuffer[index]);
 			} else {
