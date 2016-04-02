@@ -54,7 +54,7 @@
 #define FILTER_TIME_LIMIT 10000 //uS at 100/255 pwm  we get about 1/0.004 = 250uS/tick so this averages about 4 ticks
 #define US_INTERVAL 50 //This must be lower than time difference between ticks will ever be.
 #define FILTER_INTERVALS (FILTER_TIME_LIMIT/US_INTERVAL)
-#define MAX_BUFFER_SIZE 5000 //This needs to be larger than the max number of ticks that can happen in our filter time limit it needs to be larger so that memory access violations don't occur
+#define MAX_BUFFER_SIZE ((int)(FILTER_TIME_LIMIT / 166.66)) //For 10:1 micro metal gear motors. 1sec/(3000rpm at shaft * 10:1 * 12enc/rev) = 166uS/tick
 
 
 // All the data needed by interrupts is consolidated into this ugly struct
@@ -166,6 +166,7 @@ public:
 			return 0.0;
 		}
 		
+		int ticksInFilter = 0;
 		while(1){
 			//Get how many discrete intervals
 			if(encoder.uSBuffer[index] == 0){
@@ -174,6 +175,7 @@ public:
 			}
 			int intervals = abs(encoder.uSBuffer[index])/US_INTERVAL;
 			sumIntervals += intervals;
+			ticksInFilter++;
 			if(sumIntervals <= FILTER_INTERVALS){
 				velocitySum += intervals * (2.0/(float)encoder.uSBuffer[index]);
 			} else {
