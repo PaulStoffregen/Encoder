@@ -49,11 +49,12 @@
 
 // Arduino Leonardo (untested)
 #elif defined(__AVR_ATmega32U4__) && !defined(CORE_TEENSY)
-  #define CORE_NUM_INTERRUPT	4
+  #define CORE_NUM_INTERRUPT	5
   #define CORE_INT0_PIN		3
   #define CORE_INT1_PIN		2
   #define CORE_INT2_PIN		0
   #define CORE_INT3_PIN		1
+  #define CORE_INT4_PIN		7
 
 // Sanguino (untested)
 #elif defined(__AVR_ATmega644P__) || defined(__AVR_ATmega644__)
