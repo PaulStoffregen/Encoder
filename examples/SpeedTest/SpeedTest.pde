@@ -90,10 +90,12 @@ void setup() {
   pinMode(outputPin, OUTPUT);
 }
 
-#if defined(__AVR__)
+#if defined(__AVR__) || defined(TEENSYDUINO)
 #define REGTYPE unsigned char
-#elif defined(__PIC32MX__)
+#else
 #define REGTYPE unsigned long
+#endif
+
 #endif
 
 void loop() {
