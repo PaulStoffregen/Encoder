@@ -96,8 +96,6 @@ void setup() {
 #define REGTYPE unsigned long
 #endif
 
-#endif
-
 void loop() {
   volatile int count = 0;
   volatile REGTYPE *reg = portOutputRegister(digitalPinToPort(outputPin));
