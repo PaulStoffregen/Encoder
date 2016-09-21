@@ -85,7 +85,13 @@
 #elif defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
   #define CORE_NUM_INTERRUPT    1
   #define CORE_INT0_PIN		2
-
+  
+//https://github.com/SpenceKonde/ATTinyCore/blob/master/avr/extras/ATtiny_x313.md
+#elif defined(__AVR_ATtinyX313__)
+  #define CORE_NUM_INTERRUPT    2
+  #define CORE_INT0_PIN		4
+  #define CORE_INT1_PIN		5
+  
 // Arduino Due
 #elif defined(__SAM3X8E__) 
   #define CORE_NUM_INTERRUPT	54
