@@ -169,7 +169,7 @@
 // ESP32 (https://github.com/espressif/arduino-esp32)
 #elif defined(ESP32)
 
-  #define CORE_NUM_INTERRUPT EXTERNAL_NUM_INTERRUPTS
+  #define CORE_NUM_INTERRUPT  40 
   #define CORE_INT0_PIN		0
   #define CORE_INT1_PIN		1
   #define CORE_INT2_PIN		2
