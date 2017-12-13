@@ -91,6 +91,13 @@
   #define CORE_NUM_INTERRUPT    2
   #define CORE_INT0_PIN		4
   #define CORE_INT1_PIN		5
+ 
+// Attiny167 same core as abobe
+#elif defined(__AVR_ATtiny167__)
+  #define CORE_NUM_INTERRUPT	2
+  #define CORE_INT0_PIN		14
+  #define CORE_INT1_PIN		3
+
   
 // Arduino Due
 #elif defined(__SAM3X8E__) 
