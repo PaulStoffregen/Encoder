@@ -63,6 +63,18 @@
   #define CORE_INT1_PIN		11
   #define CORE_INT2_PIN		2
 
+// ATmega32u2 and ATmega32u16 based boards with HoodLoader2
+#elif defined(__AVR_ATmega32U2__) || defined(__AVR_ATmega16U2__)
+  #define CORE_NUM_INTERRUPT 8
+  #define CORE_INT0_PIN 8
+  #define CORE_INT1_PIN 17
+  #define CORE_INT2_PIN 13
+  #define CORE_INT3_PIN 14
+  #define CORE_INT4_PIN 15
+  #define CORE_INT5_PIN 16
+  #define CORE_INT6_PIN 19
+  #define CORE_INT7_PIN 20
+
 // Chipkit Uno32 - attachInterrupt may not support CHANGE option
 #elif defined(__PIC32MX__) && defined(_BOARD_UNO_)
   #define CORE_NUM_INTERRUPT	5
