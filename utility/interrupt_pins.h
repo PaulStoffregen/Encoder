@@ -256,7 +256,7 @@
   #define CORE_INT30_PIN	30
 
 #elif defined(__SAMD51__)
-  #define CORE_NUM_INTERRUPT	30
+  #define CORE_NUM_INTERRUPT	26
   #define CORE_INT0_PIN		0
   #define CORE_INT1_PIN		1
   #define CORE_INT2_PIN		2
@@ -283,10 +283,6 @@
   #define CORE_INT23_PIN	23
   #define CORE_INT24_PIN	24
   #define CORE_INT25_PIN	25
-  #define CORE_INT26_PIN	26
-  #define CORE_INT27_PIN	27
-  #define CORE_INT28_PIN	28
-  #define CORE_INT29_PIN	29
 
 // Arduino 101
 #elif defined(__arc__)
