@@ -112,6 +112,18 @@ public:
 		interrupts();
 		return ret;
 	}
+	inline int32_t readAndReset() {
+		if (interrupts_in_use < 2) {
+			noInterrupts();
+			update(&encoder);
+		} else {
+			noInterrupts();
+		}
+		int32_t ret = encoder.position;
+		encoder.position = 0;
+		interrupts();
+		return ret;
+	}
 	inline void write(int32_t p) {
 		noInterrupts();
 		encoder.position = p;
@@ -121,6 +133,12 @@ public:
 	inline int32_t read() {
 		update(&encoder);
 		return encoder.position;
+	}
+	inline int32_t readAndReset() {
+		update(&encoder);
+		int32_t ret = encoder.position;
+		encoder.position = 0;
+		return ret;
 	}
 	inline void write(int32_t p) {
 		encoder.position = p;
