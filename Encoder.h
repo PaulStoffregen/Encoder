@@ -166,7 +166,9 @@ private:
 	uint8_t interrupts_in_use;
 #endif
 public:
+#ifndef ENCODER_USE_FUNCTIONAL_INTERRUPTS
 	static Encoder_internal_state_t * interruptArgs[ENCODER_ARGLIST_SIZE];
+#endif
 
 //                           _______         _______       
 //               Pin1 ______|       |_______|       |______ Pin1
