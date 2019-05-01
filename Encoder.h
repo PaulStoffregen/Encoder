@@ -51,6 +51,22 @@
 #define ENCODER_ARGLIST_SIZE 0
 #endif
 
+// We need to manually place interrupt handlers in RAM for these platforms
+#if defined(ESP8266) || defined(ESP32)
+
+#ifndef ENCODER_DO_NOT_USE_FUNCTIONAL_INTERRUPTS
+#include <FunctionalInterrupt.h>
+#undef ENCODER_USE_INTERRUPTS
+#define ENCODER_USE_FUNCTIONAL_INTERRUPTS
+#endif
+
+#ifndef IRAM_ATTR
+#define IRAM_ATTR ICACHE_RAM_ATTR
+#endif
+
+#else // !defined(ESP32) && !defined(ESP8266)
+#define IRAM_ATTR
+#endif
 
 
 // All the data needed by interrupts is consolidated into this ugly struct
@@ -203,7 +219,7 @@ public:
 	// update() is not meant to be called from outside Encoder,
 	// but it is public to allow static interrupt routines.
 	// DO NOT call update() directly from sketches.
-	static void update(Encoder_internal_state_t *arg) {
+	static void IRAM_ATTR update(Encoder_internal_state_t *arg) {
 #if defined(__AVR__)
 		// The compiler believes this is just 1 line of code, so
 		// it will inline this function into each interrupt
@@ -371,6 +387,12 @@ private:
 #endif
 */
 
+#ifdef ENCODER_USE_FUNCTIONAL_INTERRUPTS
+    static uint8_t attach_interrupt(uint8_t pin, Encoder_internal_state_t *state) {
+        attachInterrupt(pin, std::bind(update, state), CHANGE);
+        return 1;
+    }
+#endif
 
 #ifdef ENCODER_USE_INTERRUPTS
 	// this giant function is an unfortunate consequence of Arduino's
