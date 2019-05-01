@@ -54,11 +54,8 @@
 // We need to manually place interrupt handlers in RAM for these platforms
 #if defined(ESP8266) || defined(ESP32)
 
-#ifndef ENCODER_DO_NOT_USE_FUNCTIONAL_INTERRUPTS
 #include <FunctionalInterrupt.h>
-#undef ENCODER_USE_INTERRUPTS
 #define ENCODER_USE_FUNCTIONAL_INTERRUPTS
-#endif
 
 #ifndef IRAM_ATTR
 #define IRAM_ATTR ICACHE_RAM_ATTR
@@ -166,9 +163,7 @@ private:
 	uint8_t interrupts_in_use;
 #endif
 public:
-#ifndef ENCODER_USE_FUNCTIONAL_INTERRUPTS
 	static Encoder_internal_state_t * interruptArgs[ENCODER_ARGLIST_SIZE];
-#endif
 
 //                           _______         _______       
 //               Pin1 ______|       |_______|       |______ Pin1
@@ -389,14 +384,13 @@ private:
 #endif
 */
 
-#ifdef ENCODER_USE_FUNCTIONAL_INTERRUPTS
-    static uint8_t attach_interrupt(uint8_t pin, Encoder_internal_state_t *state) {
-        attachInterrupt(pin, std::bind(update, state), CHANGE);
-        return 1;
-    }
-#endif
-
 #ifdef ENCODER_USE_INTERRUPTS
+#ifdef ENCODER_USE_FUNCTIONAL_INTERRUPTS
+	static uint8_t attach_interrupt(uint8_t pin, Encoder_internal_state_t *state) {
+		attachInterrupt(pin, std::bind(update, state), CHANGE);
+		return 1;
+	}
+#else
 	// this giant function is an unfortunate consequence of Arduino's
 	// attachInterrupt function not supporting any way to pass a pointer
 	// or other context to the attached function.
@@ -768,10 +762,11 @@ private:
 		}
 		return 1;
 	}
+#endif // !ENCODER_USE_FUNCTIONAL_INTERRUPTS
 #endif // ENCODER_USE_INTERRUPTS
 
 
-#if defined(ENCODER_USE_INTERRUPTS) && !defined(ENCODER_OPTIMIZE_INTERRUPTS)
+#if defined(ENCODER_USE_INTERRUPTS) && !defined(ENCODER_OPTIMIZE_INTERRUPTS) && !defined(ENCODER_USE_FUNCTIONAL_INTERRUPTS)
 	#ifdef CORE_INT0_PIN
 	static void isr0(void) { update(interruptArgs[0]); }
 	#endif
