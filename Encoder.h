@@ -62,7 +62,7 @@
 #endif
 
 #else // !defined(ESP32) && !defined(ESP8266)
-#define IRAM_ATTR
+#define ICACHE_RAM_ATTR
 #endif
 
 namespace EncoderInternal {
@@ -129,7 +129,7 @@ typedef struct {
 
 // update() is not meant to be called from outside Encoder,
 // DO NOT call update() directly from sketches.
-void IRAM_ATTR update(Encoder_state_t *arg) {
+void ICACHE_RAM_ATTR update(Encoder_state_t *arg) {
 #if defined(__AVR__)
 	// The compiler believes this is just 1 line of code, so
 	// it will inline this function into each interrupt
