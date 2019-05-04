@@ -54,11 +54,12 @@
 // We need to manually place interrupt handlers in RAM for these platforms
 #if defined(ESP8266) || defined(ESP32)
 
+// ESP8266 Does not expose attachInterruptArg (yet)
+#if defined(ESP8266)
 #include <FunctionalInterrupt.h>
-#define ENCODER_USE_FUNCTIONAL_INTERRUPTS
-
-#ifndef IRAM_ATTR
-#define IRAM_ATTR ICACHE_RAM_ATTR
+#define ENCODER_USE_FUNCTIONAL_INTERRUPT
+#else
+#define ENCODER_USE_ATTACH_INTERRUPT_ARG
 #endif
 
 #else // !defined(ESP32) && !defined(ESP8266)
@@ -129,7 +130,12 @@ typedef struct {
 
 // update() is not meant to be called from outside Encoder,
 // DO NOT call update() directly from sketches.
+#if defined(ENCODER_USE_ATTACH_INTERRUPT_ARG)
+void ICACHE_RAM_ATTR update(void * varg) {
+    Encoder_state_t *arg = reinterpret_cast<Encoder_state_t*>(varg);
+#else
 void ICACHE_RAM_ATTR update(Encoder_state_t *arg) {
+#endif
 #if defined(__AVR__)
 	// The compiler believes this is just 1 line of code, so
 	// it will inline this function into each interrupt
@@ -385,9 +391,14 @@ private:
 */
 
 #ifdef ENCODER_USE_INTERRUPTS
-#ifdef ENCODER_USE_FUNCTIONAL_INTERRUPTS
+#if defined(ENCODER_USE_FUNCTIONAL_INTERRUPT)
 	static uint8_t attach_interrupt(uint8_t pin, Encoder_state_t *state) {
 		attachInterrupt(pin, std::bind(update, state), CHANGE);
+		return 1;
+	}
+#elif defined(ENCODER_USE_ATTACH_INTERRUPT_ARG)
+	static uint8_t attach_interrupt(uint8_t pin, Encoder_state_t *state) {
+		attachInterruptArg(pin, update, state, CHANGE);
 		return 1;
 	}
 #else
@@ -762,11 +773,12 @@ private:
 		}
 		return 1;
 	}
-#endif // !ENCODER_USE_FUNCTIONAL_INTERRUPTS
+#endif // !ENCODER_USE_FUNCTIONAL_INTERRUPT && !ENCODER_USE_ATTACH_INTERRUPT_ARG
 #endif // ENCODER_USE_INTERRUPTS
 
 
-#if defined(ENCODER_USE_INTERRUPTS) && !defined(ENCODER_OPTIMIZE_INTERRUPTS) && !defined(ENCODER_USE_FUNCTIONAL_INTERRUPTS)
+#if defined(ENCODER_USE_INTERRUPTS) && !defined(ENCODER_OPTIMIZE_INTERRUPTS) && \
+		!defined(ENCODER_USE_FUNCTIONAL_INTERRUPT) && !defined(ENCODER_USE_ATTACH_INTERRUPT_ARG)
 	#ifdef CORE_INT0_PIN
 	static void isr0(void) { update(interruptArgs[0]); }
 	#endif
