@@ -78,7 +78,7 @@ typedef struct {
 	IO_REG_TYPE            pin2_bitmask;
 	uint8_t                state;
 	int32_t                position;
-} Encoder_internal_state_t;
+} Encoder_state_t;
 
 //                           _______         _______       
 //               Pin1 ______|       |_______|       |______ Pin1
@@ -129,7 +129,7 @@ typedef struct {
 
 // update() is not meant to be called from outside Encoder,
 // DO NOT call update() directly from sketches.
-void IRAM_ATTR update(Encoder_internal_state_t *arg) {
+void IRAM_ATTR update(Encoder_state_t *arg) {
 #if defined(__AVR__)
 	// The compiler believes this is just 1 line of code, so
 	// it will inline this function into each interrupt
@@ -317,12 +317,12 @@ public:
 	}
 #endif
 private:
-	Encoder_internal_state_t encoder;
+	Encoder_state_t encoder;
 #ifdef ENCODER_USE_INTERRUPTS
 	uint8_t interrupts_in_use;
 #endif
 public:
-	static Encoder_internal_state_t * interruptArgs[ENCODER_ARGLIST_SIZE];
+	static Encoder_state_t * interruptArgs[ENCODER_ARGLIST_SIZE];
 
 private:
 /*
@@ -386,7 +386,7 @@ private:
 
 #ifdef ENCODER_USE_INTERRUPTS
 #ifdef ENCODER_USE_FUNCTIONAL_INTERRUPTS
-	static uint8_t attach_interrupt(uint8_t pin, Encoder_internal_state_t *state) {
+	static uint8_t attach_interrupt(uint8_t pin, Encoder_state_t *state) {
 		attachInterrupt(pin, std::bind(update, state), CHANGE);
 		return 1;
 	}
@@ -394,7 +394,7 @@ private:
 	// this giant function is an unfortunate consequence of Arduino's
 	// attachInterrupt function not supporting any way to pass a pointer
 	// or other context to the attached function.
-	static uint8_t attach_interrupt(uint8_t pin, Encoder_internal_state_t *state) {
+	static uint8_t attach_interrupt(uint8_t pin, Encoder_state_t *state) {
 		switch (pin) {
 		#ifdef CORE_INT0_PIN
 			case CORE_INT0_PIN:
