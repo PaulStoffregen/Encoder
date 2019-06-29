@@ -97,7 +97,12 @@
 #elif defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
   #define CORE_NUM_INTERRUPT    1
   #define CORE_INT0_PIN		2
-  
+
+// ATtiny441 ATtiny841
+#elif defined(__AVR_ATtiny441__) || defined(__AVR_ATtiny841__)
+  #define CORE_NUM_INTERRUPT	1
+  #define CORE_INT0_PIN		9
+
 //https://github.com/SpenceKonde/ATTinyCore/blob/master/avr/extras/ATtiny_x313.md
 #elif defined(__AVR_ATtinyX313__)
   #define CORE_NUM_INTERRUPT    2
