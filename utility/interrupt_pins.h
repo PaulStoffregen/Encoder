@@ -116,6 +116,11 @@
   #define CORE_NUM_INTERRUPT    1
   #define CORE_INT0_PIN		2
 
+  // ATtiny44 ATtiny84
+#elif defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+  #define CORE_NUM_INTERRUPT	1
+  #define CORE_INT0_PIN		8
+  
 // ATtiny441 ATtiny841
 #elif defined(__AVR_ATtiny441__) || defined(__AVR_ATtiny841__)
   #define CORE_NUM_INTERRUPT	1
