@@ -1,11 +1,11 @@
 {
   "name": "Encoder",
   "keywords": "encoder, signal, pulse",
-  "description": "Encoder counts pulses from quadrature encoded signals, which are commonly available from rotary knobs, motor or shaft sensors and other position sensors. This is a debounced Version of Paul Stoffregens Encoder library",
+  "description": "Encoder counts pulses from quadrature encoded signals, which are commonly available from rotary knobs, motor or shaft sensors and other position sensors. This is a debounced version of Paul Stoffregens Encoder library",
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/FrankBoesing/Encoder.git"
+    "url": "https://github.com/FrankBoesing/EncoderBounce.git"
   },
   "frameworks": "arduino",
   "platforms":
