@@ -1,10 +1,12 @@
-/* Encoder Library, for measuring quadrature encoded signals
+/* Encoder-Debounced Library, for measuring quadrature encoded signals
+ *
+ * This is a debounced Version of Paul Stoffregens Encoder library.
+ * Forked from :
+ *
  * http://www.pjrc.com/teensy/td_libs_Encoder.html
  * Copyright (c) 2011,2013 PJRC.COM, LLC - Paul Stoffregen <paul@pjrc.com>
  *
- * Version 1.2 - fix -2 bug in C-only code
- * Version 1.1 - expand to support boards with up to 60 interrupts
- * Version 1.0 - initial release
+ * from Version 1.2 - fix -2 bug in C-only code
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -13,7 +15,7 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  * 
- * The above copyright notice and this permission notice shall be included in
+ * The above copyright notice and this permission notice shall be included ina
  * all copies or substantial portions of the Software.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -23,11 +25,15 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
+ *
+ * Modified to use debounced alogrithm :
+ * https://www.best-microcontroller-projects.com/pic-micro.html
+ *
  */
 
 
-#ifndef Encoder_h_
-#define Encoder_h_
+#ifndef Encoder_b_h_
+#define Encoder_b_h_
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -62,7 +68,8 @@ typedef struct {
 	volatile IO_REG_TYPE * pin2_register;
 	IO_REG_TYPE            pin1_bitmask;
 	IO_REG_TYPE            pin2_bitmask;
-	uint8_t                state;
+	uint8_t                prevNextCode;
+	uint16_t 	       store;
 	int32_t                position;
 } Encoder_internal_state_t;
 
@@ -91,7 +98,7 @@ public:
 		uint8_t s = 0;
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
 		if (DIRECT_PIN_READ(encoder.pin2_register, encoder.pin2_bitmask)) s |= 2;
-		encoder.state = s;
+		encoder.prevNextCode = s;
 #ifdef ENCODER_USE_INTERRUPTS
 		interrupts_in_use = attach_interrupt(pin1, &encoder);
 		interrupts_in_use += attach_interrupt(pin2, &encoder);
@@ -157,219 +164,46 @@ public:
 // negative <---         _______         _______         __      --> positive
 //               Pin2 __|       |_______|       |_______|   Pin2
 
-		//	new	new	old	old
-		//	pin2	pin1	pin2	pin1	Result
-		//	----	----	----	----	------
-		//	0	0	0	0	no movement
-		//	0	0	0	1	+1
-		//	0	0	1	0	-1
-		//	0	0	1	1	+2  (assume pin1 edges only)
-		//	0	1	0	0	-1
-		//	0	1	0	1	no movement
-		//	0	1	1	0	-2  (assume pin1 edges only)
-		//	0	1	1	1	+1
-		//	1	0	0	0	+1
-		//	1	0	0	1	-2  (assume pin1 edges only)
-		//	1	0	1	0	no movement
-		//	1	0	1	1	-1
-		//	1	1	0	0	+2  (assume pin1 edges only)
-		//	1	1	0	1	-1
-		//	1	1	1	0	+1
-		//	1	1	1	1	no movement
-/*
-	// Simple, easy-to-read "documentation" version :-)
-	//
-	void update(void) {
-		uint8_t s = state & 3;
-		if (digitalRead(pin1)) s |= 4;
-		if (digitalRead(pin2)) s |= 8;
-		switch (s) {
-			case 0: case 5: case 10: case 15:
-				break;
-			case 1: case 7: case 8: case 14:
-				position++; break;
-			case 2: case 4: case 11: case 13:
-				position--; break;
-			case 3: case 12:
-				position += 2; break;
-			default:
-				position -= 2; break;
-		}
-		state = (s >> 2);
-	}
-*/
+// https://www.best-microcontroller-projects.com/pic-micro.html
 
 public:
 	// update() is not meant to be called from outside Encoder,
 	// but it is public to allow static interrupt routines.
 	// DO NOT call update() directly from sketches.
 	static void update(Encoder_internal_state_t *arg) {
-#if defined(__AVR__)
-		// The compiler believes this is just 1 line of code, so
-		// it will inline this function into each interrupt
-		// handler.  That's a tiny bit faster, but grows the code.
-		// Especially when used with ENCODER_OPTIMIZE_INTERRUPTS,
-		// the inline nature allows the ISR prologue and epilogue
-		// to only save/restore necessary registers, for very nice
-		// speed increase.
-		asm volatile (
-			"ld	r30, X+"		"\n\t"
-			"ld	r31, X+"		"\n\t"
-			"ld	r24, Z"			"\n\t"	// r24 = pin1 input
-			"ld	r30, X+"		"\n\t"
-			"ld	r31, X+"		"\n\t"
-			"ld	r25, Z"			"\n\t"  // r25 = pin2 input
-			"ld	r30, X+"		"\n\t"  // r30 = pin1 mask
-			"ld	r31, X+"		"\n\t"	// r31 = pin2 mask
-			"ld	r22, X"			"\n\t"	// r22 = state
-			"andi	r22, 3"			"\n\t"
-			"and	r24, r30"		"\n\t"
-			"breq	L%=1"			"\n\t"	// if (pin1)
-			"ori	r22, 4"			"\n\t"	//	state |= 4
-		"L%=1:"	"and	r25, r31"		"\n\t"
-			"breq	L%=2"			"\n\t"	// if (pin2)
-			"ori	r22, 8"			"\n\t"	//	state |= 8
-		"L%=2:" "ldi	r30, lo8(pm(L%=table))"	"\n\t"
-			"ldi	r31, hi8(pm(L%=table))"	"\n\t"
-			"add	r30, r22"		"\n\t"
-			"adc	r31, __zero_reg__"	"\n\t"
-			"asr	r22"			"\n\t"
-			"asr	r22"			"\n\t"
-			"st	X+, r22"		"\n\t"  // store new state
-			"ld	r22, X+"		"\n\t"
-			"ld	r23, X+"		"\n\t"
-			"ld	r24, X+"		"\n\t"
-			"ld	r25, X+"		"\n\t"
-			"ijmp"				"\n\t"	// jumps to update_finishup()
-			// TODO move this table to another static function,
-			// so it doesn't get needlessly duplicated.  Easier
-			// said than done, due to linker issues and inlining
-		"L%=table:"				"\n\t"
-			"rjmp	L%=end"			"\n\t"	// 0
-			"rjmp	L%=plus1"		"\n\t"	// 1
-			"rjmp	L%=minus1"		"\n\t"	// 2
-			"rjmp	L%=plus2"		"\n\t"	// 3
-			"rjmp	L%=minus1"		"\n\t"	// 4
-			"rjmp	L%=end"			"\n\t"	// 5
-			"rjmp	L%=minus2"		"\n\t"	// 6
-			"rjmp	L%=plus1"		"\n\t"	// 7
-			"rjmp	L%=plus1"		"\n\t"	// 8
-			"rjmp	L%=minus2"		"\n\t"	// 9
-			"rjmp	L%=end"			"\n\t"	// 10
-			"rjmp	L%=minus1"		"\n\t"	// 11
-			"rjmp	L%=plus2"		"\n\t"	// 12
-			"rjmp	L%=minus1"		"\n\t"	// 13
-			"rjmp	L%=plus1"		"\n\t"	// 14
-			"rjmp	L%=end"			"\n\t"	// 15
-		"L%=minus2:"				"\n\t"
-			"subi	r22, 2"			"\n\t"
-			"sbci	r23, 0"			"\n\t"
-			"sbci	r24, 0"			"\n\t"
-			"sbci	r25, 0"			"\n\t"
-			"rjmp	L%=store"		"\n\t"
-		"L%=minus1:"				"\n\t"
-			"subi	r22, 1"			"\n\t"
-			"sbci	r23, 0"			"\n\t"
-			"sbci	r24, 0"			"\n\t"
-			"sbci	r25, 0"			"\n\t"
-			"rjmp	L%=store"		"\n\t"
-		"L%=plus2:"				"\n\t"
-			"subi	r22, 254"		"\n\t"
-			"rjmp	L%=z"			"\n\t"
-		"L%=plus1:"				"\n\t"
-			"subi	r22, 255"		"\n\t"
-		"L%=z:"	"sbci	r23, 255"		"\n\t"
-			"sbci	r24, 255"		"\n\t"
-			"sbci	r25, 255"		"\n\t"
-		"L%=store:"				"\n\t"
-			"st	-X, r25"		"\n\t"
-			"st	-X, r24"		"\n\t"
-			"st	-X, r23"		"\n\t"
-			"st	-X, r22"		"\n\t"
-		"L%=end:"				"\n"
-		: : "x" (arg) : "r22", "r23", "r24", "r25", "r30", "r31");
-#else
+		
+		#if defined(__AVR__)
+		//No barrel-Shifter on AVR - use Table instead
+		static const int8_t rot_enc_table[] = {0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0};
+		#else
+		const uint16_t rot_enc = 0b0110100110010110;
+		#endif
+		
 		uint8_t p1val = DIRECT_PIN_READ(arg->pin1_register, arg->pin1_bitmask);
 		uint8_t p2val = DIRECT_PIN_READ(arg->pin2_register, arg->pin2_bitmask);
-		uint8_t state = arg->state & 3;
-		if (p1val) state |= 4;
-		if (p2val) state |= 8;
-		arg->state = (state >> 2);
-		switch (state) {
-			case 1: case 7: case 8: case 14:
-				arg->position++;
-				return;
-			case 2: case 4: case 11: case 13:
-				arg->position--;
-				return;
-			case 3: case 12:
-				arg->position += 2;
-				return;
-			case 6: case 9:
-				arg->position -= 2;
-				return;
+
+		uint8_t t = arg->prevNextCode;
+		t <<= 2;
+		if (p1val) arg->prevNextCode |= 0x02;
+		if (p2val) arg->prevNextCode |= 0x01;
+		t &= 0x0f;
+		arg->prevNextCode = t;
+		
+		// If valid then store as 16 bit data.
+		#if defined(__AVR__)
+		if  (rot_enc_table[t] ) {
+		#else //we have a barrelshifter
+		if (rot_enc & (1 << t)) {
+		#endif
+			arg->store = (arg->store << 4) | arg->prevNextCode;
+			if (arg->store == 0xd42b) arg->position++;
+			else if (arg->store == 0xe817) arg->position--;
+			else if ((arg->store & 0xff) == 0x2b) arg->position--;
+			else if ((arg->store & 0xff) == 0x17) arg->position++;
 		}
-#endif
+		
 	}
 private:
-/*
-#if defined(__AVR__)
-	// TODO: this must be a no inline function
-	// even noinline does not seem to solve difficult
-	// problems with this.  Oh well, it was only meant
-	// to shrink code size - there's no performance
-	// improvement in this, only code size reduction.
-	__attribute__((noinline)) void update_finishup(void) {
-		asm volatile (
-			"ldi	r30, lo8(pm(Ltable))"	"\n\t"
-			"ldi	r31, hi8(pm(Ltable))"	"\n\t"
-		"Ltable:"				"\n\t"
-			"rjmp	L%=end"			"\n\t"	// 0
-			"rjmp	L%=plus1"		"\n\t"	// 1
-			"rjmp	L%=minus1"		"\n\t"	// 2
-			"rjmp	L%=plus2"		"\n\t"	// 3
-			"rjmp	L%=minus1"		"\n\t"	// 4
-			"rjmp	L%=end"			"\n\t"	// 5
-			"rjmp	L%=minus2"		"\n\t"	// 6
-			"rjmp	L%=plus1"		"\n\t"	// 7
-			"rjmp	L%=plus1"		"\n\t"	// 8
-			"rjmp	L%=minus2"		"\n\t"	// 9
-			"rjmp	L%=end"			"\n\t"	// 10
-			"rjmp	L%=minus1"		"\n\t"	// 11
-			"rjmp	L%=plus2"		"\n\t"	// 12
-			"rjmp	L%=minus1"		"\n\t"	// 13
-			"rjmp	L%=plus1"		"\n\t"	// 14
-			"rjmp	L%=end"			"\n\t"	// 15
-		"L%=minus2:"				"\n\t"
-			"subi	r22, 2"			"\n\t"
-			"sbci	r23, 0"			"\n\t"
-			"sbci	r24, 0"			"\n\t"
-			"sbci	r25, 0"			"\n\t"
-			"rjmp	L%=store"		"\n\t"
-		"L%=minus1:"				"\n\t"
-			"subi	r22, 1"			"\n\t"
-			"sbci	r23, 0"			"\n\t"
-			"sbci	r24, 0"			"\n\t"
-			"sbci	r25, 0"			"\n\t"
-			"rjmp	L%=store"		"\n\t"
-		"L%=plus2:"				"\n\t"
-			"subi	r22, 254"		"\n\t"
-			"rjmp	L%=z"			"\n\t"
-		"L%=plus1:"				"\n\t"
-			"subi	r22, 255"		"\n\t"
-		"L%=z:"	"sbci	r23, 255"		"\n\t"
-			"sbci	r24, 255"		"\n\t"
-			"sbci	r25, 255"		"\n\t"
-		"L%=store:"				"\n\t"
-			"st	-X, r25"		"\n\t"
-			"st	-X, r24"		"\n\t"
-			"st	-X, r23"		"\n\t"
-			"st	-X, r22"		"\n\t"
-		"L%=end:"				"\n"
-		: : : "r22", "r23", "r24", "r25", "r30", "r31");
-	}
-#endif
-*/
 
 
 #ifdef ENCODER_USE_INTERRUPTS

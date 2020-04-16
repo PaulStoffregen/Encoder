@@ -1,4 +1,5 @@
 # Encoder Library
+This is a debounced version of Paul Stoffregens Encoder library.
 
 Encoder counts pulses from quadrature encoded signals, which are commonly available from rotary knobs, motor or shaft sensors and other position sensors. 
 
