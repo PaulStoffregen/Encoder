@@ -244,12 +244,13 @@
 
 // Arduino Zero - TODO: interrupts do not seem to work
 //                      please help, contribute a fix!
-#elif defined(__SAMD21G18A__) || defined(__SAMD51__)
-  #define CORE_NUM_INTERRUPT	20
+#elif defined(__SAMD21G18A__)
+  #define CORE_NUM_INTERRUPT	31
   #define CORE_INT0_PIN		0
   #define CORE_INT1_PIN		1
   #define CORE_INT2_PIN		2
   #define CORE_INT3_PIN		3
+  #define CORE_INT4_PIN		4
   #define CORE_INT5_PIN		5
   #define CORE_INT6_PIN		6
   #define CORE_INT7_PIN		7
@@ -265,6 +266,46 @@
   #define CORE_INT17_PIN	17
   #define CORE_INT18_PIN	18
   #define CORE_INT19_PIN	19
+  #define CORE_INT20_PIN	20
+  #define CORE_INT21_PIN	21
+  #define CORE_INT22_PIN	22
+  #define CORE_INT23_PIN	23
+  #define CORE_INT24_PIN	24
+  #define CORE_INT25_PIN	25
+  #define CORE_INT26_PIN	26
+  #define CORE_INT27_PIN	27
+  #define CORE_INT28_PIN	28
+  #define CORE_INT29_PIN	29
+  #define CORE_INT30_PIN	30
+
+#elif defined(__SAMD51__)
+  #define CORE_NUM_INTERRUPT	26
+  #define CORE_INT0_PIN		0
+  #define CORE_INT1_PIN		1
+  #define CORE_INT2_PIN		2
+  #define CORE_INT3_PIN		3
+  #define CORE_INT4_PIN		4
+  #define CORE_INT5_PIN		5
+  #define CORE_INT6_PIN		6
+  #define CORE_INT7_PIN		7
+  #define CORE_INT8_PIN		8
+  #define CORE_INT9_PIN		9
+  #define CORE_INT10_PIN	10
+  #define CORE_INT11_PIN	11
+  #define CORE_INT12_PIN	12
+  #define CORE_INT13_PIN	13
+  #define CORE_INT14_PIN	14
+  #define CORE_INT15_PIN	15
+  #define CORE_INT16_PIN	16
+  #define CORE_INT17_PIN	17
+  #define CORE_INT18_PIN	18
+  #define CORE_INT19_PIN	19
+  #define CORE_INT20_PIN	20
+  #define CORE_INT21_PIN	21
+  #define CORE_INT22_PIN	22
+  #define CORE_INT23_PIN	23
+  #define CORE_INT24_PIN	24
+  #define CORE_INT25_PIN	25
 
 // Arduino 101
 #elif defined(__arc__)
