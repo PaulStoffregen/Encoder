@@ -31,8 +31,8 @@
   #define CORE_INT7_PIN		EI7
   #endif
 
-// Arduino Uno, Duemilanove, Diecimila, LilyPad, Mini, Fio, etc...
-#elif defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328PB__) ||defined(__AVR_ATmega168__) || defined(__AVR_ATmega8__)
+// Arduino Uno, Duemilanove, Diecimila, LilyPad, Mini, Fio, uStepperS, etc...
+#elif defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328PB__) || defined(__AVR_ATmega328PB__) ||defined(__AVR_ATmega168__) || defined(__AVR_ATmega8__)
   #define CORE_NUM_INTERRUPT	2
   #define CORE_INT0_PIN		2
   #define CORE_INT1_PIN		3
