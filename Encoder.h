@@ -53,9 +53,9 @@
 
 // Use ICACHE_RAM_ATTR for ISRs to prevent ESP8266 resets
 #if defined(ESP8266)
-#define ISR_ATTR ICACHE_RAM_ATTR
+#define ENCODER_ISR_ATTR ICACHE_RAM_ATTR
 #else
-#define ISR_ATTR
+#define ENCODER_ISR_ATTR
 #endif
 
 
@@ -756,184 +756,184 @@ private:
 
 #if defined(ENCODER_USE_INTERRUPTS) && !defined(ENCODER_OPTIMIZE_INTERRUPTS)
 	#ifdef CORE_INT0_PIN
-	static ISR_ATTR void isr0(void) { update(interruptArgs[0]); }
+	static ENCODER_ISR_ATTR void isr0(void) { update(interruptArgs[0]); }
 	#endif
 	#ifdef CORE_INT1_PIN
-	static ISR_ATTR void isr1(void) { update(interruptArgs[1]); }
+	static ENCODER_ISR_ATTR void isr1(void) { update(interruptArgs[1]); }
 	#endif
 	#ifdef CORE_INT2_PIN
-	static ISR_ATTR void isr2(void) { update(interruptArgs[2]); }
+	static ENCODER_ISR_ATTR void isr2(void) { update(interruptArgs[2]); }
 	#endif
 	#ifdef CORE_INT3_PIN
-	static ISR_ATTR void isr3(void) { update(interruptArgs[3]); }
+	static ENCODER_ISR_ATTR void isr3(void) { update(interruptArgs[3]); }
 	#endif
 	#ifdef CORE_INT4_PIN
-	static ISR_ATTR void isr4(void) { update(interruptArgs[4]); }
+	static ENCODER_ISR_ATTR void isr4(void) { update(interruptArgs[4]); }
 	#endif
 	#ifdef CORE_INT5_PIN
-	static ISR_ATTR void isr5(void) { update(interruptArgs[5]); }
+	static ENCODER_ISR_ATTR void isr5(void) { update(interruptArgs[5]); }
 	#endif
 	#ifdef CORE_INT6_PIN
-	static ISR_ATTR void isr6(void) { update(interruptArgs[6]); }
+	static ENCODER_ISR_ATTR void isr6(void) { update(interruptArgs[6]); }
 	#endif
 	#ifdef CORE_INT7_PIN
-	static ISR_ATTR void isr7(void) { update(interruptArgs[7]); }
+	static ENCODER_ISR_ATTR void isr7(void) { update(interruptArgs[7]); }
 	#endif
 	#ifdef CORE_INT8_PIN
-	static ISR_ATTR void isr8(void) { update(interruptArgs[8]); }
+	static ENCODER_ISR_ATTR void isr8(void) { update(interruptArgs[8]); }
 	#endif
 	#ifdef CORE_INT9_PIN
-	static ISR_ATTR void isr9(void) { update(interruptArgs[9]); }
+	static ENCODER_ISR_ATTR void isr9(void) { update(interruptArgs[9]); }
 	#endif
 	#ifdef CORE_INT10_PIN
-	static ISR_ATTR void isr10(void) { update(interruptArgs[10]); }
+	static ENCODER_ISR_ATTR void isr10(void) { update(interruptArgs[10]); }
 	#endif
 	#ifdef CORE_INT11_PIN
-	static ISR_ATTR void isr11(void) { update(interruptArgs[11]); }
+	static ENCODER_ISR_ATTR void isr11(void) { update(interruptArgs[11]); }
 	#endif
 	#ifdef CORE_INT12_PIN
-	static ISR_ATTR void isr12(void) { update(interruptArgs[12]); }
+	static ENCODER_ISR_ATTR void isr12(void) { update(interruptArgs[12]); }
 	#endif
 	#ifdef CORE_INT13_PIN
-	static ISR_ATTR void isr13(void) { update(interruptArgs[13]); }
+	static ENCODER_ISR_ATTR void isr13(void) { update(interruptArgs[13]); }
 	#endif
 	#ifdef CORE_INT14_PIN
-	static ISR_ATTR void isr14(void) { update(interruptArgs[14]); }
+	static ENCODER_ISR_ATTR void isr14(void) { update(interruptArgs[14]); }
 	#endif
 	#ifdef CORE_INT15_PIN
-	static ISR_ATTR void isr15(void) { update(interruptArgs[15]); }
+	static ENCODER_ISR_ATTR void isr15(void) { update(interruptArgs[15]); }
 	#endif
 	#ifdef CORE_INT16_PIN
-	static ISR_ATTR void isr16(void) { update(interruptArgs[16]); }
+	static ENCODER_ISR_ATTR void isr16(void) { update(interruptArgs[16]); }
 	#endif
 	#ifdef CORE_INT17_PIN
-	static ISR_ATTR void isr17(void) { update(interruptArgs[17]); }
+	static ENCODER_ISR_ATTR void isr17(void) { update(interruptArgs[17]); }
 	#endif
 	#ifdef CORE_INT18_PIN
-	static ISR_ATTR void isr18(void) { update(interruptArgs[18]); }
+	static ENCODER_ISR_ATTR void isr18(void) { update(interruptArgs[18]); }
 	#endif
 	#ifdef CORE_INT19_PIN
-	static ISR_ATTR void isr19(void) { update(interruptArgs[19]); }
+	static ENCODER_ISR_ATTR void isr19(void) { update(interruptArgs[19]); }
 	#endif
 	#ifdef CORE_INT20_PIN
-	static ISR_ATTR void isr20(void) { update(interruptArgs[20]); }
+	static ENCODER_ISR_ATTR void isr20(void) { update(interruptArgs[20]); }
 	#endif
 	#ifdef CORE_INT21_PIN
-	static ISR_ATTR void isr21(void) { update(interruptArgs[21]); }
+	static ENCODER_ISR_ATTR void isr21(void) { update(interruptArgs[21]); }
 	#endif
 	#ifdef CORE_INT22_PIN
-	static ISR_ATTR void isr22(void) { update(interruptArgs[22]); }
+	static ENCODER_ISR_ATTR void isr22(void) { update(interruptArgs[22]); }
 	#endif
 	#ifdef CORE_INT23_PIN
-	static ISR_ATTR void isr23(void) { update(interruptArgs[23]); }
+	static ENCODER_ISR_ATTR void isr23(void) { update(interruptArgs[23]); }
 	#endif
 	#ifdef CORE_INT24_PIN
-	static ISR_ATTR void isr24(void) { update(interruptArgs[24]); }
+	static ENCODER_ISR_ATTR void isr24(void) { update(interruptArgs[24]); }
 	#endif
 	#ifdef CORE_INT25_PIN
-	static ISR_ATTR void isr25(void) { update(interruptArgs[25]); }
+	static ENCODER_ISR_ATTR void isr25(void) { update(interruptArgs[25]); }
 	#endif
 	#ifdef CORE_INT26_PIN
-	static ISR_ATTR void isr26(void) { update(interruptArgs[26]); }
+	static ENCODER_ISR_ATTR void isr26(void) { update(interruptArgs[26]); }
 	#endif
 	#ifdef CORE_INT27_PIN
-	static ISR_ATTR void isr27(void) { update(interruptArgs[27]); }
+	static ENCODER_ISR_ATTR void isr27(void) { update(interruptArgs[27]); }
 	#endif
 	#ifdef CORE_INT28_PIN
-	static ISR_ATTR void isr28(void) { update(interruptArgs[28]); }
+	static ENCODER_ISR_ATTR void isr28(void) { update(interruptArgs[28]); }
 	#endif
 	#ifdef CORE_INT29_PIN
-	static ISR_ATTR void isr29(void) { update(interruptArgs[29]); }
+	static ENCODER_ISR_ATTR void isr29(void) { update(interruptArgs[29]); }
 	#endif
 	#ifdef CORE_INT30_PIN
-	static ISR_ATTR void isr30(void) { update(interruptArgs[30]); }
+	static ENCODER_ISR_ATTR void isr30(void) { update(interruptArgs[30]); }
 	#endif
 	#ifdef CORE_INT31_PIN
-	static ISR_ATTR void isr31(void) { update(interruptArgs[31]); }
+	static ENCODER_ISR_ATTR void isr31(void) { update(interruptArgs[31]); }
 	#endif
 	#ifdef CORE_INT32_PIN
-	static ISR_ATTR void isr32(void) { update(interruptArgs[32]); }
+	static ENCODER_ISR_ATTR void isr32(void) { update(interruptArgs[32]); }
 	#endif
 	#ifdef CORE_INT33_PIN
-	static ISR_ATTR void isr33(void) { update(interruptArgs[33]); }
+	static ENCODER_ISR_ATTR void isr33(void) { update(interruptArgs[33]); }
 	#endif
 	#ifdef CORE_INT34_PIN
-	static ISR_ATTR void isr34(void) { update(interruptArgs[34]); }
+	static ENCODER_ISR_ATTR void isr34(void) { update(interruptArgs[34]); }
 	#endif
 	#ifdef CORE_INT35_PIN
-	static ISR_ATTR void isr35(void) { update(interruptArgs[35]); }
+	static ENCODER_ISR_ATTR void isr35(void) { update(interruptArgs[35]); }
 	#endif
 	#ifdef CORE_INT36_PIN
-	static ISR_ATTR void isr36(void) { update(interruptArgs[36]); }
+	static ENCODER_ISR_ATTR void isr36(void) { update(interruptArgs[36]); }
 	#endif
 	#ifdef CORE_INT37_PIN
-	static ISR_ATTR void isr37(void) { update(interruptArgs[37]); }
+	static ENCODER_ISR_ATTR void isr37(void) { update(interruptArgs[37]); }
 	#endif
 	#ifdef CORE_INT38_PIN
-	static ISR_ATTR void isr38(void) { update(interruptArgs[38]); }
+	static ENCODER_ISR_ATTR void isr38(void) { update(interruptArgs[38]); }
 	#endif
 	#ifdef CORE_INT39_PIN
-	static ISR_ATTR void isr39(void) { update(interruptArgs[39]); }
+	static ENCODER_ISR_ATTR void isr39(void) { update(interruptArgs[39]); }
 	#endif
 	#ifdef CORE_INT40_PIN
-	static ISR_ATTR void isr40(void) { update(interruptArgs[40]); }
+	static ENCODER_ISR_ATTR void isr40(void) { update(interruptArgs[40]); }
 	#endif
 	#ifdef CORE_INT41_PIN
-	static ISR_ATTR void isr41(void) { update(interruptArgs[41]); }
+	static ENCODER_ISR_ATTR void isr41(void) { update(interruptArgs[41]); }
 	#endif
 	#ifdef CORE_INT42_PIN
-	static ISR_ATTR void isr42(void) { update(interruptArgs[42]); }
+	static ENCODER_ISR_ATTR void isr42(void) { update(interruptArgs[42]); }
 	#endif
 	#ifdef CORE_INT43_PIN
-	static ISR_ATTR void isr43(void) { update(interruptArgs[43]); }
+	static ENCODER_ISR_ATTR void isr43(void) { update(interruptArgs[43]); }
 	#endif
 	#ifdef CORE_INT44_PIN
-	static ISR_ATTR void isr44(void) { update(interruptArgs[44]); }
+	static ENCODER_ISR_ATTR void isr44(void) { update(interruptArgs[44]); }
 	#endif
 	#ifdef CORE_INT45_PIN
-	static ISR_ATTR void isr45(void) { update(interruptArgs[45]); }
+	static ENCODER_ISR_ATTR void isr45(void) { update(interruptArgs[45]); }
 	#endif
 	#ifdef CORE_INT46_PIN
-	static ISR_ATTR void isr46(void) { update(interruptArgs[46]); }
+	static ENCODER_ISR_ATTR void isr46(void) { update(interruptArgs[46]); }
 	#endif
 	#ifdef CORE_INT47_PIN
-	static ISR_ATTR void isr47(void) { update(interruptArgs[47]); }
+	static ENCODER_ISR_ATTR void isr47(void) { update(interruptArgs[47]); }
 	#endif
 	#ifdef CORE_INT48_PIN
-	static ISR_ATTR void isr48(void) { update(interruptArgs[48]); }
+	static ENCODER_ISR_ATTR void isr48(void) { update(interruptArgs[48]); }
 	#endif
 	#ifdef CORE_INT49_PIN
-	static ISR_ATTR void isr49(void) { update(interruptArgs[49]); }
+	static ENCODER_ISR_ATTR void isr49(void) { update(interruptArgs[49]); }
 	#endif
 	#ifdef CORE_INT50_PIN
-	static ISR_ATTR void isr50(void) { update(interruptArgs[50]); }
+	static ENCODER_ISR_ATTR void isr50(void) { update(interruptArgs[50]); }
 	#endif
 	#ifdef CORE_INT51_PIN
-	static ISR_ATTR void isr51(void) { update(interruptArgs[51]); }
+	static ENCODER_ISR_ATTR void isr51(void) { update(interruptArgs[51]); }
 	#endif
 	#ifdef CORE_INT52_PIN
-	static ISR_ATTR void isr52(void) { update(interruptArgs[52]); }
+	static ENCODER_ISR_ATTR void isr52(void) { update(interruptArgs[52]); }
 	#endif
 	#ifdef CORE_INT53_PIN
-	static ISR_ATTR void isr53(void) { update(interruptArgs[53]); }
+	static ENCODER_ISR_ATTR void isr53(void) { update(interruptArgs[53]); }
 	#endif
 	#ifdef CORE_INT54_PIN
-	static ISR_ATTR void isr54(void) { update(interruptArgs[54]); }
+	static ENCODER_ISR_ATTR void isr54(void) { update(interruptArgs[54]); }
 	#endif
 	#ifdef CORE_INT55_PIN
-	static ISR_ATTR void isr55(void) { update(interruptArgs[55]); }
+	static ENCODER_ISR_ATTR void isr55(void) { update(interruptArgs[55]); }
 	#endif
 	#ifdef CORE_INT56_PIN
-	static ISR_ATTR void isr56(void) { update(interruptArgs[56]); }
+	static ENCODER_ISR_ATTR void isr56(void) { update(interruptArgs[56]); }
 	#endif
 	#ifdef CORE_INT57_PIN
-	static ISR_ATTR void isr57(void) { update(interruptArgs[57]); }
+	static ENCODER_ISR_ATTR void isr57(void) { update(interruptArgs[57]); }
 	#endif
 	#ifdef CORE_INT58_PIN
-	static ISR_ATTR void isr58(void) { update(interruptArgs[58]); }
+	static ENCODER_ISR_ATTR void isr58(void) { update(interruptArgs[58]); }
 	#endif
 	#ifdef CORE_INT59_PIN
-	static ISR_ATTR void isr59(void) { update(interruptArgs[59]); }
+	static ENCODER_ISR_ATTR void isr59(void) { update(interruptArgs[59]); }
 	#endif
 #endif
 };
