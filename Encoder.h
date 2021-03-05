@@ -51,7 +51,22 @@
 #define ENCODER_ARGLIST_SIZE 0
 #endif
 
+// We need to manually place interrupt handlers in RAM for these platforms
+#if defined(ESP8266) || defined(ESP32)
 
+// ESP8266 Does not expose attachInterruptArg (yet)
+#if defined(ESP8266)
+#include <FunctionalInterrupt.h>
+#define ENCODER_USE_FUNCTIONAL_INTERRUPT
+#else
+#define ENCODER_USE_ATTACH_INTERRUPT_ARG
+#endif
+
+#else // !defined(ESP32) && !defined(ESP8266)
+#define ICACHE_RAM_ATTR
+#endif
+
+namespace EncoderInternal {
 
 // All the data needed by interrupts is consolidated into this ugly struct
 // to facilitate assembly language optimizing of the speed critical update.
@@ -64,7 +79,170 @@ typedef struct {
 	IO_REG_TYPE            pin2_bitmask;
 	uint8_t                state;
 	int32_t                position;
-} Encoder_internal_state_t;
+} Encoder_state_t;
+
+//                           _______         _______       
+//               Pin1 ______|       |_______|       |______ Pin1
+// negative <---         _______         _______         __      --> positive
+//               Pin2 __|       |_______|       |_______|   Pin2
+
+		//	new	new	old	old
+		//	pin2	pin1	pin2	pin1	Result
+		//	----	----	----	----	------
+		//	0	0	0	0	no movement
+		//	0	0	0	1	+1
+		//	0	0	1	0	-1
+		//	0	0	1	1	+2  (assume pin1 edges only)
+		//	0	1	0	0	-1
+		//	0	1	0	1	no movement
+		//	0	1	1	0	-2  (assume pin1 edges only)
+		//	0	1	1	1	+1
+		//	1	0	0	0	+1
+		//	1	0	0	1	-2  (assume pin1 edges only)
+		//	1	0	1	0	no movement
+		//	1	0	1	1	-1
+		//	1	1	0	0	+2  (assume pin1 edges only)
+		//	1	1	0	1	-1
+		//	1	1	1	0	+1
+		//	1	1	1	1	no movement
+/*
+	// Simple, easy-to-read "documentation" version :-)
+	//
+	void update(void) {
+		uint8_t s = state & 3;
+		if (digitalRead(pin1)) s |= 4;
+		if (digitalRead(pin2)) s |= 8;
+		switch (s) {
+			case 0: case 5: case 10: case 15:
+				break;
+			case 1: case 7: case 8: case 14:
+				position++; break;
+			case 2: case 4: case 11: case 13:
+				position--; break;
+			case 3: case 12:
+				position += 2; break;
+			default:
+				position -= 2; break;
+		}
+		state = (s >> 2);
+	}
+*/
+
+// update() is not meant to be called from outside Encoder,
+// DO NOT call update() directly from sketches.
+#if defined(ENCODER_USE_ATTACH_INTERRUPT_ARG)
+void ICACHE_RAM_ATTR update(void * varg) {
+    Encoder_state_t *arg = reinterpret_cast<Encoder_state_t*>(varg);
+#else
+void ICACHE_RAM_ATTR update(Encoder_state_t *arg) {
+#endif
+#if defined(__AVR__)
+	// The compiler believes this is just 1 line of code, so
+	// it will inline this function into each interrupt
+	// handler.  That's a tiny bit faster, but grows the code.
+	// Especially when used with ENCODER_OPTIMIZE_INTERRUPTS,
+	// the inline nature allows the ISR prologue and epilogue
+	// to only save/restore necessary registers, for very nice
+	// speed increase.
+	asm volatile (
+		"ld	r30, X+"		"\n\t"
+		"ld	r31, X+"		"\n\t"
+		"ld	r24, Z"			"\n\t"	// r24 = pin1 input
+		"ld	r30, X+"		"\n\t"
+		"ld	r31, X+"		"\n\t"
+		"ld	r25, Z"			"\n\t"  // r25 = pin2 input
+		"ld	r30, X+"		"\n\t"  // r30 = pin1 mask
+		"ld	r31, X+"		"\n\t"	// r31 = pin2 mask
+		"ld	r22, X"			"\n\t"	// r22 = state
+		"andi	r22, 3"			"\n\t"
+		"and	r24, r30"		"\n\t"
+		"breq	L%=1"			"\n\t"	// if (pin1)
+		"ori	r22, 4"			"\n\t"	//	state |= 4
+	"L%=1:"	"and	r25, r31"		"\n\t"
+		"breq	L%=2"			"\n\t"	// if (pin2)
+		"ori	r22, 8"			"\n\t"	//	state |= 8
+	"L%=2:" "ldi	r30, lo8(pm(L%=table))"	"\n\t"
+		"ldi	r31, hi8(pm(L%=table))"	"\n\t"
+		"add	r30, r22"		"\n\t"
+		"adc	r31, __zero_reg__"	"\n\t"
+		"asr	r22"			"\n\t"
+		"asr	r22"			"\n\t"
+		"st	X+, r22"		"\n\t"  // store new state
+		"ld	r22, X+"		"\n\t"
+		"ld	r23, X+"		"\n\t"
+		"ld	r24, X+"		"\n\t"
+		"ld	r25, X+"		"\n\t"
+		"ijmp"				"\n\t"	// jumps to update_finishup()
+		// TODO move this table to another static function,
+		// so it doesn't get needlessly duplicated.  Easier
+		// said than done, due to linker issues and inlining
+	"L%=table:"				"\n\t"
+		"rjmp	L%=end"			"\n\t"	// 0
+		"rjmp	L%=plus1"		"\n\t"	// 1
+		"rjmp	L%=minus1"		"\n\t"	// 2
+		"rjmp	L%=plus2"		"\n\t"	// 3
+		"rjmp	L%=minus1"		"\n\t"	// 4
+		"rjmp	L%=end"			"\n\t"	// 5
+		"rjmp	L%=minus2"		"\n\t"	// 6
+		"rjmp	L%=plus1"		"\n\t"	// 7
+		"rjmp	L%=plus1"		"\n\t"	// 8
+		"rjmp	L%=minus2"		"\n\t"	// 9
+		"rjmp	L%=end"			"\n\t"	// 10
+		"rjmp	L%=minus1"		"\n\t"	// 11
+		"rjmp	L%=plus2"		"\n\t"	// 12
+		"rjmp	L%=minus1"		"\n\t"	// 13
+		"rjmp	L%=plus1"		"\n\t"	// 14
+		"rjmp	L%=end"			"\n\t"	// 15
+	"L%=minus2:"				"\n\t"
+		"subi	r22, 2"			"\n\t"
+		"sbci	r23, 0"			"\n\t"
+		"sbci	r24, 0"			"\n\t"
+		"sbci	r25, 0"			"\n\t"
+		"rjmp	L%=store"		"\n\t"
+	"L%=minus1:"				"\n\t"
+		"subi	r22, 1"			"\n\t"
+		"sbci	r23, 0"			"\n\t"
+		"sbci	r24, 0"			"\n\t"
+		"sbci	r25, 0"			"\n\t"
+		"rjmp	L%=store"		"\n\t"
+	"L%=plus2:"				"\n\t"
+		"subi	r22, 254"		"\n\t"
+		"rjmp	L%=z"			"\n\t"
+	"L%=plus1:"				"\n\t"
+		"subi	r22, 255"		"\n\t"
+	"L%=z:"	"sbci	r23, 255"		"\n\t"
+		"sbci	r24, 255"		"\n\t"
+		"sbci	r25, 255"		"\n\t"
+	"L%=store:"				"\n\t"
+		"st	-X, r25"		"\n\t"
+		"st	-X, r24"		"\n\t"
+		"st	-X, r23"		"\n\t"
+		"st	-X, r22"		"\n\t"
+	"L%=end:"				"\n"
+	: : "x" (arg) : "r22", "r23", "r24", "r25", "r30", "r31");
+#else
+	uint8_t p1val = DIRECT_PIN_READ(arg->pin1_register, arg->pin1_bitmask);
+	uint8_t p2val = DIRECT_PIN_READ(arg->pin2_register, arg->pin2_bitmask);
+	uint8_t state = arg->state & 3;
+	if (p1val) state |= 4;
+	if (p2val) state |= 8;
+	arg->state = (state >> 2);
+	switch (state) {
+		case 1: case 7: case 8: case 14:
+			arg->position++;
+			return;
+		case 2: case 4: case 11: case 13:
+			arg->position--;
+			return;
+		case 3: case 12:
+			arg->position += 2;
+			return;
+		case 6: case 9:
+			arg->position -= 2;
+			return;
+	}
+#endif
+}
 
 class Encoder
 {
@@ -145,172 +323,13 @@ public:
 	}
 #endif
 private:
-	Encoder_internal_state_t encoder;
+	Encoder_state_t encoder;
 #ifdef ENCODER_USE_INTERRUPTS
 	uint8_t interrupts_in_use;
 #endif
 public:
-	static Encoder_internal_state_t * interruptArgs[ENCODER_ARGLIST_SIZE];
+	static Encoder_state_t * interruptArgs[ENCODER_ARGLIST_SIZE];
 
-//                           _______         _______       
-//               Pin1 ______|       |_______|       |______ Pin1
-// negative <---         _______         _______         __      --> positive
-//               Pin2 __|       |_______|       |_______|   Pin2
-
-		//	new	new	old	old
-		//	pin2	pin1	pin2	pin1	Result
-		//	----	----	----	----	------
-		//	0	0	0	0	no movement
-		//	0	0	0	1	+1
-		//	0	0	1	0	-1
-		//	0	0	1	1	+2  (assume pin1 edges only)
-		//	0	1	0	0	-1
-		//	0	1	0	1	no movement
-		//	0	1	1	0	-2  (assume pin1 edges only)
-		//	0	1	1	1	+1
-		//	1	0	0	0	+1
-		//	1	0	0	1	-2  (assume pin1 edges only)
-		//	1	0	1	0	no movement
-		//	1	0	1	1	-1
-		//	1	1	0	0	+2  (assume pin1 edges only)
-		//	1	1	0	1	-1
-		//	1	1	1	0	+1
-		//	1	1	1	1	no movement
-/*
-	// Simple, easy-to-read "documentation" version :-)
-	//
-	void update(void) {
-		uint8_t s = state & 3;
-		if (digitalRead(pin1)) s |= 4;
-		if (digitalRead(pin2)) s |= 8;
-		switch (s) {
-			case 0: case 5: case 10: case 15:
-				break;
-			case 1: case 7: case 8: case 14:
-				position++; break;
-			case 2: case 4: case 11: case 13:
-				position--; break;
-			case 3: case 12:
-				position += 2; break;
-			default:
-				position -= 2; break;
-		}
-		state = (s >> 2);
-	}
-*/
-
-public:
-	// update() is not meant to be called from outside Encoder,
-	// but it is public to allow static interrupt routines.
-	// DO NOT call update() directly from sketches.
-	static void update(Encoder_internal_state_t *arg) {
-#if defined(__AVR__)
-		// The compiler believes this is just 1 line of code, so
-		// it will inline this function into each interrupt
-		// handler.  That's a tiny bit faster, but grows the code.
-		// Especially when used with ENCODER_OPTIMIZE_INTERRUPTS,
-		// the inline nature allows the ISR prologue and epilogue
-		// to only save/restore necessary registers, for very nice
-		// speed increase.
-		asm volatile (
-			"ld	r30, X+"		"\n\t"
-			"ld	r31, X+"		"\n\t"
-			"ld	r24, Z"			"\n\t"	// r24 = pin1 input
-			"ld	r30, X+"		"\n\t"
-			"ld	r31, X+"		"\n\t"
-			"ld	r25, Z"			"\n\t"  // r25 = pin2 input
-			"ld	r30, X+"		"\n\t"  // r30 = pin1 mask
-			"ld	r31, X+"		"\n\t"	// r31 = pin2 mask
-			"ld	r22, X"			"\n\t"	// r22 = state
-			"andi	r22, 3"			"\n\t"
-			"and	r24, r30"		"\n\t"
-			"breq	L%=1"			"\n\t"	// if (pin1)
-			"ori	r22, 4"			"\n\t"	//	state |= 4
-		"L%=1:"	"and	r25, r31"		"\n\t"
-			"breq	L%=2"			"\n\t"	// if (pin2)
-			"ori	r22, 8"			"\n\t"	//	state |= 8
-		"L%=2:" "ldi	r30, lo8(pm(L%=table))"	"\n\t"
-			"ldi	r31, hi8(pm(L%=table))"	"\n\t"
-			"add	r30, r22"		"\n\t"
-			"adc	r31, __zero_reg__"	"\n\t"
-			"asr	r22"			"\n\t"
-			"asr	r22"			"\n\t"
-			"st	X+, r22"		"\n\t"  // store new state
-			"ld	r22, X+"		"\n\t"
-			"ld	r23, X+"		"\n\t"
-			"ld	r24, X+"		"\n\t"
-			"ld	r25, X+"		"\n\t"
-			"ijmp"				"\n\t"	// jumps to update_finishup()
-			// TODO move this table to another static function,
-			// so it doesn't get needlessly duplicated.  Easier
-			// said than done, due to linker issues and inlining
-		"L%=table:"				"\n\t"
-			"rjmp	L%=end"			"\n\t"	// 0
-			"rjmp	L%=plus1"		"\n\t"	// 1
-			"rjmp	L%=minus1"		"\n\t"	// 2
-			"rjmp	L%=plus2"		"\n\t"	// 3
-			"rjmp	L%=minus1"		"\n\t"	// 4
-			"rjmp	L%=end"			"\n\t"	// 5
-			"rjmp	L%=minus2"		"\n\t"	// 6
-			"rjmp	L%=plus1"		"\n\t"	// 7
-			"rjmp	L%=plus1"		"\n\t"	// 8
-			"rjmp	L%=minus2"		"\n\t"	// 9
-			"rjmp	L%=end"			"\n\t"	// 10
-			"rjmp	L%=minus1"		"\n\t"	// 11
-			"rjmp	L%=plus2"		"\n\t"	// 12
-			"rjmp	L%=minus1"		"\n\t"	// 13
-			"rjmp	L%=plus1"		"\n\t"	// 14
-			"rjmp	L%=end"			"\n\t"	// 15
-		"L%=minus2:"				"\n\t"
-			"subi	r22, 2"			"\n\t"
-			"sbci	r23, 0"			"\n\t"
-			"sbci	r24, 0"			"\n\t"
-			"sbci	r25, 0"			"\n\t"
-			"rjmp	L%=store"		"\n\t"
-		"L%=minus1:"				"\n\t"
-			"subi	r22, 1"			"\n\t"
-			"sbci	r23, 0"			"\n\t"
-			"sbci	r24, 0"			"\n\t"
-			"sbci	r25, 0"			"\n\t"
-			"rjmp	L%=store"		"\n\t"
-		"L%=plus2:"				"\n\t"
-			"subi	r22, 254"		"\n\t"
-			"rjmp	L%=z"			"\n\t"
-		"L%=plus1:"				"\n\t"
-			"subi	r22, 255"		"\n\t"
-		"L%=z:"	"sbci	r23, 255"		"\n\t"
-			"sbci	r24, 255"		"\n\t"
-			"sbci	r25, 255"		"\n\t"
-		"L%=store:"				"\n\t"
-			"st	-X, r25"		"\n\t"
-			"st	-X, r24"		"\n\t"
-			"st	-X, r23"		"\n\t"
-			"st	-X, r22"		"\n\t"
-		"L%=end:"				"\n"
-		: : "x" (arg) : "r22", "r23", "r24", "r25", "r30", "r31");
-#else
-		uint8_t p1val = DIRECT_PIN_READ(arg->pin1_register, arg->pin1_bitmask);
-		uint8_t p2val = DIRECT_PIN_READ(arg->pin2_register, arg->pin2_bitmask);
-		uint8_t state = arg->state & 3;
-		if (p1val) state |= 4;
-		if (p2val) state |= 8;
-		arg->state = (state >> 2);
-		switch (state) {
-			case 1: case 7: case 8: case 14:
-				arg->position++;
-				return;
-			case 2: case 4: case 11: case 13:
-				arg->position--;
-				return;
-			case 3: case 12:
-				arg->position += 2;
-				return;
-			case 6: case 9:
-				arg->position -= 2;
-				return;
-		}
-#endif
-	}
 private:
 /*
 #if defined(__AVR__)
@@ -371,12 +390,22 @@ private:
 #endif
 */
 
-
 #ifdef ENCODER_USE_INTERRUPTS
+#if defined(ENCODER_USE_FUNCTIONAL_INTERRUPT)
+	static uint8_t attach_interrupt(uint8_t pin, Encoder_state_t *state) {
+		attachInterrupt(pin, std::bind(update, state), CHANGE);
+		return 1;
+	}
+#elif defined(ENCODER_USE_ATTACH_INTERRUPT_ARG)
+	static uint8_t attach_interrupt(uint8_t pin, Encoder_state_t *state) {
+		attachInterruptArg(pin, update, state, CHANGE);
+		return 1;
+	}
+#else
 	// this giant function is an unfortunate consequence of Arduino's
 	// attachInterrupt function not supporting any way to pass a pointer
 	// or other context to the attached function.
-	static uint8_t attach_interrupt(uint8_t pin, Encoder_internal_state_t *state) {
+	static uint8_t attach_interrupt(uint8_t pin, Encoder_state_t *state) {
 		switch (pin) {
 		#ifdef CORE_INT0_PIN
 			case CORE_INT0_PIN:
@@ -744,10 +773,12 @@ private:
 		}
 		return 1;
 	}
+#endif // !ENCODER_USE_FUNCTIONAL_INTERRUPT && !ENCODER_USE_ATTACH_INTERRUPT_ARG
 #endif // ENCODER_USE_INTERRUPTS
 
 
-#if defined(ENCODER_USE_INTERRUPTS) && !defined(ENCODER_OPTIMIZE_INTERRUPTS)
+#if defined(ENCODER_USE_INTERRUPTS) && !defined(ENCODER_OPTIMIZE_INTERRUPTS) && \
+		!defined(ENCODER_USE_FUNCTIONAL_INTERRUPT) && !defined(ENCODER_USE_ATTACH_INTERRUPT_ARG)
 	#ifdef CORE_INT0_PIN
 	static void isr0(void) { update(interruptArgs[0]); }
 	#endif
@@ -967,3 +998,7 @@ ISR(INT7_vect) { Encoder::update(Encoder::interruptArgs[SCRAMBLE_INT_ORDER(7)]);
 
 
 #endif
+}
+
+// We only need the Encoder class exported
+using Encoder = EncoderInternal::Encoder;
