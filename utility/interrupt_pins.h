@@ -252,7 +252,7 @@
 
 // Arduino Zero - TODO: interrupts do not seem to work
 //                      please help, contribute a fix!
-#elif defined(__SAMD21G18A__)
+#elif defined(__SAMD21G18A__) || defined(__SAMD21E18A__)
   #define CORE_NUM_INTERRUPT	31
   #define CORE_INT0_PIN		0
   #define CORE_INT1_PIN		1
