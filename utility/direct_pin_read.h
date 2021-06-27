@@ -73,6 +73,12 @@
 #define PIN_TO_BITMASK(pin)             (pin)
 #define DIRECT_PIN_READ(base, pin)      nrf_gpio_pin_read(pin)
 
+#elif defined(ARDUINO_ARCH_NRF52840)
+#define IO_REG_TYPE                     uint32_t
+#define PIN_TO_BASEREG(pin)             (0)
+#define PIN_TO_BITMASK(pin)             digitalPinToPinName(pin)
+#define DIRECT_PIN_READ(base, pin)      nrf_gpio_pin_read(pin)
+
 #elif defined(__arc__) /* Arduino101/Genuino101 specifics */
 
 #include "scss_registers.h"
