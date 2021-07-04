@@ -53,7 +53,7 @@
 
 // Use ICACHE_RAM_ATTR for ISRs to prevent ESP8266 resets
 #if defined(ESP8266) || defined(ESP32)
-#define ENCODER_ISR_ATTR ICACHE_RAM_ATTR
+#define ENCODER_ISR_ATTR IRAM_ATTR
 #else
 #define ENCODER_ISR_ATTR
 #endif
