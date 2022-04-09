@@ -210,7 +210,11 @@ public:
 	// update() is not meant to be called from outside Encoder,
 	// but it is public to allow static interrupt routines.
 	// DO NOT call update() directly from sketches.
+#if defined(IRAM_ATTR)
+	static IRAM_ATTR void update(Encoder_internal_state_t *arg) {
+#else
 	static void update(Encoder_internal_state_t *arg) {
+#endif
 #if defined(__AVR__)
 		// The compiler believes this is just 1 line of code, so
 		// it will inline this function into each interrupt
