@@ -387,7 +387,7 @@
 // Arduino Uno R4
 #elif defined(ARDUINO_UNOR4_MINIMA)
 //0, 1, 2, 3, 8, 12, 13, 15, 16, 17, 18 and 19.
-  #define CORE_NUM_INTERRUPT	12
+  #define CORE_NUM_INTERRUPT	20
   #define CORE_INT0_PIN		0
   #define CORE_INT1_PIN		1
   #define CORE_INT2_PIN		2
@@ -401,8 +401,8 @@
   #define CORE_INT18_PIN	18
   #define CORE_INT19_PIN	19
 #elif defined(ARDUINO_UNOR4_WIFI)
-//0, 1, 2, 3, 8, 12, 13, 15, 16, 17, 18 and 19.
-  #define CORE_NUM_INTERRUPT	12
+//0, 1, 2, 3, 8, 11, 12, 15, 16, 17, 18 and 19.
+  #define CORE_NUM_INTERRUPT	20
   #define CORE_INT0_PIN		0
   #define CORE_INT1_PIN		1
   #define CORE_INT2_PIN		2
