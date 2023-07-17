@@ -93,10 +93,13 @@ public:
 		// through the pullup resistors, before reading
 		// the initial state
 				  pinMode(0, OUTPUT);
-  pinMode(1, OUTPUT); pinMode(5, OUTPUT);
+  pinMode(1, OUTPUT); pinMode(5, OUTPUT); pinMode(8, OUTPUT);
+  pinMode(7, OUTPUT);
 			digitalWrite(0, LOW);
 			digitalWrite(1, LOW);
 			digitalWrite(5, LOW);
+			digitalWrite(8, LOW);
+			digitalWrite(7, LOW);
 		delayMicroseconds(2000);
 		uint8_t s = 0;
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
@@ -105,8 +108,7 @@ public:
 #ifdef ENCODER_USE_INTERRUPTS
 		interrupts_in_use = attach_interrupt(pin1, &encoder);
 		interrupts_in_use += attach_interrupt(pin2, &encoder);
-		digitalWrite(1, LOW);
-		
+	
 #endif
 		//update_finishup();  // to force linker to include the code (does not work)
 	}
@@ -114,10 +116,7 @@ public:
 
 #ifdef ENCODER_USE_INTERRUPTS
 	inline int32_t read() {
-		digitalWrite(0, LOW);
-
 		if (interrupts_in_use < 2) {
-			digitalWrite(1, HIGH);
 			noInterrupts();
 			update(&encoder);
 		} else {
@@ -222,7 +221,7 @@ public:
 	static IRAM_ATTR void update(Encoder_internal_state_t *arg) {
 #else
 	static void update(Encoder_internal_state_t *arg) {
-		 digitalWrite(0,HIGH);
+		digitalWrite(7, HIGH);
 #endif
 #if defined(__AVR__)
 		// The compiler believes this is just 1 line of code, so
@@ -309,7 +308,6 @@ public:
 		"L%=end:"				"\n"
 		: : "x" (arg) : "r22", "r23", "r24", "r25", "r30", "r31");
 #else
-	 digitalWrite(1,HIGH);
 		uint8_t p1val = DIRECT_PIN_READ(arg->pin1_register, arg->pin1_bitmask);
 		uint8_t p2val = DIRECT_PIN_READ(arg->pin2_register, arg->pin2_bitmask);
 		uint8_t state = arg->state & 3;
@@ -417,22 +415,21 @@ private:
 		#endif
 		#ifdef CORE_INT2_PIN
 			case CORE_INT2_PIN:
+				digitalWrite(5, HIGH);
 				interruptArgs[2] = state;
-				digitalWrite(0, HIGH);
 				attachInterrupt(2, isr2, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT3_PIN
 			case CORE_INT3_PIN:
+				digitalWrite(8, HIGH);
 				interruptArgs[3] = state;
-				digitalWrite(1, HIGH);
 				attachInterrupt(3, isr3, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT4_PIN
 			case CORE_INT4_PIN:
 				interruptArgs[4] = state;
-\
 				attachInterrupt(4, isr4, CHANGE);
 				break;
 		#endif
@@ -783,10 +780,10 @@ private:
 	static ENCODER_ISR_ATTR void isr1(void) { update(interruptArgs[1]); }
 	#endif
 	#ifdef CORE_INT2_PIN
-	static ENCODER_ISR_ATTR void isr2(void) {digitalWrite(5,HIGH); update(interruptArgs[2]); }
+	static ENCODER_ISR_ATTR void isr2(void) {digitalWrite(0,HIGH); update(interruptArgs[2]); }
 	#endif
 	#ifdef CORE_INT3_PIN
-	static ENCODER_ISR_ATTR void isr3(void) {digitalWrite(5,HIGH); update(interruptArgs[3]);}
+	static ENCODER_ISR_ATTR void isr3(void) {digitalWrite(1,HIGH); update(interruptArgs[3]);}
 	#endif
 	#ifdef CORE_INT4_PIN
 	static ENCODER_ISR_ATTR void isr4(void) { update(interruptArgs[4]); }
