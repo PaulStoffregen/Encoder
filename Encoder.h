@@ -74,7 +74,12 @@ typedef struct {
 class Encoder
 {
 public:
-	Encoder(uint8_t pin1, uint8_t pin2) {
+	// one step setup like before
+	Encoder(uint8_t pin1, uint8_t pin2) { begin(pin1, pin2);}
+
+	// two step setup for platforms that have issues with constructor ordering
+	Encoder() { }
+	void begin(uint8_t pin1, uint8_t pin2) {
 		#ifdef INPUT_PULLUP
 		pinMode(pin1, INPUT_PULLUP);
 		pinMode(pin2, INPUT_PULLUP);
@@ -92,14 +97,6 @@ public:
 		// allow time for a passive R-C filter to charge
 		// through the pullup resistors, before reading
 		// the initial state
-				  pinMode(0, OUTPUT);
-  pinMode(1, OUTPUT); pinMode(5, OUTPUT); pinMode(8, OUTPUT);
-  pinMode(7, OUTPUT);
-			digitalWrite(0, LOW);
-			digitalWrite(1, LOW);
-			digitalWrite(5, LOW);
-			digitalWrite(8, LOW);
-			digitalWrite(7, LOW);
 		delayMicroseconds(2000);
 		uint8_t s = 0;
 		if (DIRECT_PIN_READ(encoder.pin1_register, encoder.pin1_bitmask)) s |= 1;
@@ -108,7 +105,6 @@ public:
 #ifdef ENCODER_USE_INTERRUPTS
 		interrupts_in_use = attach_interrupt(pin1, &encoder);
 		interrupts_in_use += attach_interrupt(pin2, &encoder);
-	
 #endif
 		//update_finishup();  // to force linker to include the code (does not work)
 	}
@@ -221,7 +217,6 @@ public:
 	static IRAM_ATTR void update(Encoder_internal_state_t *arg) {
 #else
 	static void update(Encoder_internal_state_t *arg) {
-		digitalWrite(7, HIGH);
 #endif
 #if defined(__AVR__)
 		// The compiler believes this is just 1 line of code, so
@@ -415,14 +410,12 @@ private:
 		#endif
 		#ifdef CORE_INT2_PIN
 			case CORE_INT2_PIN:
-				digitalWrite(5, HIGH);
 				interruptArgs[2] = state;
 				attachInterrupt(2, isr2, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT3_PIN
 			case CORE_INT3_PIN:
-				digitalWrite(8, HIGH);
 				interruptArgs[3] = state;
 				attachInterrupt(3, isr3, CHANGE);
 				break;
@@ -780,10 +773,10 @@ private:
 	static ENCODER_ISR_ATTR void isr1(void) { update(interruptArgs[1]); }
 	#endif
 	#ifdef CORE_INT2_PIN
-	static ENCODER_ISR_ATTR void isr2(void) {digitalWrite(0,HIGH); update(interruptArgs[2]); }
+	static ENCODER_ISR_ATTR void isr2(void) { update(interruptArgs[2]); }
 	#endif
 	#ifdef CORE_INT3_PIN
-	static ENCODER_ISR_ATTR void isr3(void) {digitalWrite(1,HIGH); update(interruptArgs[3]);}
+	static ENCODER_ISR_ATTR void isr3(void) { update(interruptArgs[3]);}
 	#endif
 	#ifdef CORE_INT4_PIN
 	static ENCODER_ISR_ATTR void isr4(void) { update(interruptArgs[4]); }
