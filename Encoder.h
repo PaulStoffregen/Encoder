@@ -51,6 +51,10 @@
 #define ENCODER_ARGLIST_SIZE 0
 #endif
 
+#if defined(ENCODER_USE_PULLUP) || !defined(ENCODER_DO_NOT_USE_PULLUP)
+#define ENCODER_USE_PULLUP
+#endif
+
 // Use ICACHE_RAM_ATTR for ISRs to prevent ESP8266 resets
 #if defined(ESP8266) || defined(ESP32)
 #define ENCODER_ISR_ATTR ICACHE_RAM_ATTR
@@ -77,14 +81,16 @@ class Encoder
 {
 public:
 	Encoder(uint8_t pin1, uint8_t pin2) {
-		#ifdef INPUT_PULLUP
+		#if defined(INPUT_PULLUP) && defined(ENCODER_USE_PULLUP)
 		pinMode(pin1, INPUT_PULLUP);
 		pinMode(pin2, INPUT_PULLUP);
 		#else
 		pinMode(pin1, INPUT);
-		digitalWrite(pin1, HIGH);
 		pinMode(pin2, INPUT);
+		#if defined(ENCODER_USE_PULLUP)
+		digitalWrite(pin1, HIGH);
 		digitalWrite(pin2, HIGH);
+		#endif
 		#endif
 		encoder.pin1_register = PIN_TO_BASEREG(pin1);
 		encoder.pin1_bitmask = PIN_TO_BITMASK(pin1);
