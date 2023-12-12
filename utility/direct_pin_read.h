@@ -79,7 +79,7 @@
 #define PIN_TO_BITMASK(pin)             digitalPinToPinName(pin)
 #define DIRECT_PIN_READ(base, pin)      nrf_gpio_pin_read(pin)
 
-#elif defined(ARDUINO_NANO_RP2040_CONNECT)
+#elif defined(ARDUINO_NANO_RP2040_CONNECT) || defined(ARDUINO_ARCH_RP2040)
 #define IO_REG_TYPE                     pin_size_t
 #define PIN_TO_BASEREG(pin)             (0)
 #define PIN_TO_BITMASK(pin)             pin
