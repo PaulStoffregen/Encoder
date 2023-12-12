@@ -151,6 +151,17 @@ public:
 		encoder.position = p;
 	}
 #endif
+	inline int32_t getDirection() {
+		int32_t prevPos = encoder.position;
+		long currPos = read();
+		int32_t direction = 0;
+		if (currPos > prevPos) {
+			direction = 1;
+		} else if (currPos < prevPos) {
+			direction = -1;
+		}
+		return direction;
+	}
 private:
 	Encoder_internal_state_t encoder;
 #ifdef ENCODER_USE_INTERRUPTS
