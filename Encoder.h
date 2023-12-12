@@ -392,362 +392,362 @@ private:
 		#ifdef CORE_INT0_PIN
 			case CORE_INT0_PIN:
 				interruptArgs[0] = state;
-				attachInterrupt(0, isr0, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(0), isr0, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT1_PIN
 			case CORE_INT1_PIN:
 				interruptArgs[1] = state;
-				attachInterrupt(1, isr1, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(1), isr1, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT2_PIN
 			case CORE_INT2_PIN:
 				interruptArgs[2] = state;
-				attachInterrupt(2, isr2, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(2), isr2, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT3_PIN
 			case CORE_INT3_PIN:
 				interruptArgs[3] = state;
-				attachInterrupt(3, isr3, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(3), isr3, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT4_PIN
 			case CORE_INT4_PIN:
 				interruptArgs[4] = state;
-				attachInterrupt(4, isr4, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(4), isr4, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT5_PIN
 			case CORE_INT5_PIN:
 				interruptArgs[5] = state;
-				attachInterrupt(5, isr5, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(5), isr5, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT6_PIN
 			case CORE_INT6_PIN:
 				interruptArgs[6] = state;
-				attachInterrupt(6, isr6, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(6), isr6, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT7_PIN
 			case CORE_INT7_PIN:
 				interruptArgs[7] = state;
-				attachInterrupt(7, isr7, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(7), isr7, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT8_PIN
 			case CORE_INT8_PIN:
 				interruptArgs[8] = state;
-				attachInterrupt(8, isr8, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(8), isr8, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT9_PIN
 			case CORE_INT9_PIN:
 				interruptArgs[9] = state;
-				attachInterrupt(9, isr9, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(9), isr9, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT10_PIN
 			case CORE_INT10_PIN:
 				interruptArgs[10] = state;
-				attachInterrupt(10, isr10, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(10), isr10, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT11_PIN
 			case CORE_INT11_PIN:
 				interruptArgs[11] = state;
-				attachInterrupt(11, isr11, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(11), isr11, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT12_PIN
 			case CORE_INT12_PIN:
 				interruptArgs[12] = state;
-				attachInterrupt(12, isr12, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(12), isr12, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT13_PIN
 			case CORE_INT13_PIN:
 				interruptArgs[13] = state;
-				attachInterrupt(13, isr13, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(13), isr13, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT14_PIN
 			case CORE_INT14_PIN:
 				interruptArgs[14] = state;
-				attachInterrupt(14, isr14, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(14), isr14, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT15_PIN
 			case CORE_INT15_PIN:
 				interruptArgs[15] = state;
-				attachInterrupt(15, isr15, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(15), isr15, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT16_PIN
 			case CORE_INT16_PIN:
 				interruptArgs[16] = state;
-				attachInterrupt(16, isr16, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(16), isr16, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT17_PIN
 			case CORE_INT17_PIN:
 				interruptArgs[17] = state;
-				attachInterrupt(17, isr17, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(17), isr17, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT18_PIN
 			case CORE_INT18_PIN:
 				interruptArgs[18] = state;
-				attachInterrupt(18, isr18, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(18), isr18, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT19_PIN
 			case CORE_INT19_PIN:
 				interruptArgs[19] = state;
-				attachInterrupt(19, isr19, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(19), isr19, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT20_PIN
 			case CORE_INT20_PIN:
 				interruptArgs[20] = state;
-				attachInterrupt(20, isr20, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(20), isr20, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT21_PIN
 			case CORE_INT21_PIN:
 				interruptArgs[21] = state;
-				attachInterrupt(21, isr21, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(21), isr21, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT22_PIN
 			case CORE_INT22_PIN:
 				interruptArgs[22] = state;
-				attachInterrupt(22, isr22, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(22), isr22, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT23_PIN
 			case CORE_INT23_PIN:
 				interruptArgs[23] = state;
-				attachInterrupt(23, isr23, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(23), isr23, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT24_PIN
 			case CORE_INT24_PIN:
 				interruptArgs[24] = state;
-				attachInterrupt(24, isr24, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(24), isr24, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT25_PIN
 			case CORE_INT25_PIN:
 				interruptArgs[25] = state;
-				attachInterrupt(25, isr25, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(25), isr25, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT26_PIN
 			case CORE_INT26_PIN:
 				interruptArgs[26] = state;
-				attachInterrupt(26, isr26, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(26), isr26, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT27_PIN
 			case CORE_INT27_PIN:
 				interruptArgs[27] = state;
-				attachInterrupt(27, isr27, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(27), isr27, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT28_PIN
 			case CORE_INT28_PIN:
 				interruptArgs[28] = state;
-				attachInterrupt(28, isr28, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(28), isr28, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT29_PIN
 			case CORE_INT29_PIN:
 				interruptArgs[29] = state;
-				attachInterrupt(29, isr29, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(29), isr29, CHANGE);
 				break;
 		#endif
 
 		#ifdef CORE_INT30_PIN
 			case CORE_INT30_PIN:
 				interruptArgs[30] = state;
-				attachInterrupt(30, isr30, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(30), isr30, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT31_PIN
 			case CORE_INT31_PIN:
 				interruptArgs[31] = state;
-				attachInterrupt(31, isr31, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(31), isr31, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT32_PIN
 			case CORE_INT32_PIN:
 				interruptArgs[32] = state;
-				attachInterrupt(32, isr32, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(32), isr32, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT33_PIN
 			case CORE_INT33_PIN:
 				interruptArgs[33] = state;
-				attachInterrupt(33, isr33, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(33), isr33, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT34_PIN
 			case CORE_INT34_PIN:
 				interruptArgs[34] = state;
-				attachInterrupt(34, isr34, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(34), isr34, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT35_PIN
 			case CORE_INT35_PIN:
 				interruptArgs[35] = state;
-				attachInterrupt(35, isr35, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(35), isr35, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT36_PIN
 			case CORE_INT36_PIN:
 				interruptArgs[36] = state;
-				attachInterrupt(36, isr36, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(36), isr36, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT37_PIN
 			case CORE_INT37_PIN:
 				interruptArgs[37] = state;
-				attachInterrupt(37, isr37, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(37), isr37, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT38_PIN
 			case CORE_INT38_PIN:
 				interruptArgs[38] = state;
-				attachInterrupt(38, isr38, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(38), isr38, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT39_PIN
 			case CORE_INT39_PIN:
 				interruptArgs[39] = state;
-				attachInterrupt(39, isr39, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(39), isr39, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT40_PIN
 			case CORE_INT40_PIN:
 				interruptArgs[40] = state;
-				attachInterrupt(40, isr40, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(40), isr40, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT41_PIN
 			case CORE_INT41_PIN:
 				interruptArgs[41] = state;
-				attachInterrupt(41, isr41, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(41), isr41, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT42_PIN
 			case CORE_INT42_PIN:
 				interruptArgs[42] = state;
-				attachInterrupt(42, isr42, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(42), isr42, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT43_PIN
 			case CORE_INT43_PIN:
 				interruptArgs[43] = state;
-				attachInterrupt(43, isr43, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(43), isr43, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT44_PIN
 			case CORE_INT44_PIN:
 				interruptArgs[44] = state;
-				attachInterrupt(44, isr44, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(44), isr44, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT45_PIN
 			case CORE_INT45_PIN:
 				interruptArgs[45] = state;
-				attachInterrupt(45, isr45, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(45), isr45, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT46_PIN
 			case CORE_INT46_PIN:
 				interruptArgs[46] = state;
-				attachInterrupt(46, isr46, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(46), isr46, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT47_PIN
 			case CORE_INT47_PIN:
 				interruptArgs[47] = state;
-				attachInterrupt(47, isr47, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(47), isr47, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT48_PIN
 			case CORE_INT48_PIN:
 				interruptArgs[48] = state;
-				attachInterrupt(48, isr48, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(48), isr48, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT49_PIN
 			case CORE_INT49_PIN:
 				interruptArgs[49] = state;
-				attachInterrupt(49, isr49, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(49), isr49, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT50_PIN
 			case CORE_INT50_PIN:
 				interruptArgs[50] = state;
-				attachInterrupt(50, isr50, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(50), isr50, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT51_PIN
 			case CORE_INT51_PIN:
 				interruptArgs[51] = state;
-				attachInterrupt(51, isr51, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(51), isr51, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT52_PIN
 			case CORE_INT52_PIN:
 				interruptArgs[52] = state;
-				attachInterrupt(52, isr52, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(52), isr52, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT53_PIN
 			case CORE_INT53_PIN:
 				interruptArgs[53] = state;
-				attachInterrupt(53, isr53, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(53), isr53, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT54_PIN
 			case CORE_INT54_PIN:
 				interruptArgs[54] = state;
-				attachInterrupt(54, isr54, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(54), isr54, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT55_PIN
 			case CORE_INT55_PIN:
 				interruptArgs[55] = state;
-				attachInterrupt(55, isr55, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(55), isr55, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT56_PIN
 			case CORE_INT56_PIN:
 				interruptArgs[56] = state;
-				attachInterrupt(56, isr56, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(56), isr56, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT57_PIN
 			case CORE_INT57_PIN:
 				interruptArgs[57] = state;
-				attachInterrupt(57, isr57, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(57), isr57, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT58_PIN
 			case CORE_INT58_PIN:
 				interruptArgs[58] = state;
-				attachInterrupt(58, isr58, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(58), isr58, CHANGE);
 				break;
 		#endif
 		#ifdef CORE_INT59_PIN
 			case CORE_INT59_PIN:
 				interruptArgs[59] = state;
-				attachInterrupt(59, isr59, CHANGE);
+				attachInterrupt(digitalPinToInterrupt(59), isr59, CHANGE);
 				break;
 		#endif
 			default:
