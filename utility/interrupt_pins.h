@@ -383,6 +383,91 @@
   #define CORE_INT19_PIN	19
   // #define CORE_INT20_PIN	A6
   // #define CORE_INT21_PIN	A7
+
+
+// Arduino Giga R1 WiFi
+// All pins are interrupt capable
+#elif defined(ARDUINO_GIGA)
+  #define CORE_NUM_INTERRUPT 76
+  #define CORE_INT0_PIN 0
+  #define CORE_INT1_PIN 1
+  #define CORE_INT2_PIN 2
+  #define CORE_INT3_PIN 3
+  #define CORE_INT4_PIN 4
+  #define CORE_INT5_PIN 5
+  #define CORE_INT6_PIN 6
+  #define CORE_INT7_PIN 7
+  #define CORE_INT8_PIN 8
+  #define CORE_INT9_PIN 9
+  #define CORE_INT10_PIN 10
+  #define CORE_INT11_PIN 11
+  #define CORE_INT12_PIN 12
+  #define CORE_INT13_PIN 13
+  #define CORE_INT14_PIN 14
+  #define CORE_INT15_PIN 15
+  #define CORE_INT16_PIN 16
+  #define CORE_INT17_PIN 17
+  #define CORE_INT18_PIN 18
+  #define CORE_INT19_PIN 19
+  #define CORE_INT20_PIN 20
+  #define CORE_INT21_PIN 21
+  #define CORE_INT22_PIN 22
+  #define CORE_INT23_PIN 23
+  #define CORE_INT24_PIN 24
+  #define CORE_INT25_PIN 25
+  #define CORE_INT26_PIN 26
+  #define CORE_INT27_PIN 27
+  #define CORE_INT28_PIN 28
+  #define CORE_INT29_PIN 29
+  #define CORE_INT30_PIN 30
+  #define CORE_INT31_PIN 31
+  #define CORE_INT32_PIN 32
+  #define CORE_INT33_PIN 33
+  #define CORE_INT34_PIN 34
+  #define CORE_INT35_PIN 35
+  #define CORE_INT36_PIN 36
+  #define CORE_INT37_PIN 37
+  #define CORE_INT38_PIN 38
+  #define CORE_INT39_PIN 39
+  #define CORE_INT40_PIN 40
+  #define CORE_INT41_PIN 41
+  #define CORE_INT42_PIN 42
+  #define CORE_INT43_PIN 43
+  #define CORE_INT44_PIN 44
+  #define CORE_INT45_PIN 45
+  #define CORE_INT46_PIN 46
+  #define CORE_INT47_PIN 47
+  #define CORE_INT48_PIN 48
+  #define CORE_INT49_PIN 49
+  #define CORE_INT50_PIN 50
+  #define CORE_INT51_PIN 51
+  #define CORE_INT52_PIN 52
+  #define CORE_INT53_PIN 53
+  #define CORE_INT54_PIN 54
+  #define CORE_INT55_PIN 55
+  #define CORE_INT56_PIN 56
+  #define CORE_INT57_PIN 57
+  #define CORE_INT58_PIN 58
+  #define CORE_INT59_PIN 59
+  #define CORE_INT60_PIN 60
+  #define CORE_INT61_PIN 61
+  #define CORE_INT62_PIN 62
+  #define CORE_INT63_PIN 63
+  #define CORE_INT64_PIN 64
+  #define CORE_INT65_PIN 65
+  #define CORE_INT66_PIN 66
+  #define CORE_INT67_PIN 67
+  #define CORE_INT68_PIN 68
+  #define CORE_INT69_PIN 69
+  #define CORE_INT70_PIN 70
+  #define CORE_INT71_PIN 71
+  #define CORE_INT72_PIN 72
+  #define CORE_INT73_PIN 73
+  #define CORE_INT74_PIN 74
+  #define CORE_INT75_PIN 75
+  #define CORE_INT76_PIN 76
+
+
 #endif
 #endif
 
