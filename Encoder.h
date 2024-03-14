@@ -58,8 +58,6 @@
 #define ENCODER_ISR_ATTR
 #endif
 
-
-
 // All the data needed by interrupts is consolidated into this ugly struct
 // to facilitate assembly language optimizing of the speed critical update.
 // The assembly code uses auto-incrementing addressing modes, so the struct
@@ -76,7 +74,12 @@ typedef struct {
 class Encoder
 {
 public:
-	Encoder(uint8_t pin1, uint8_t pin2) {
+	// one step setup like before
+	Encoder(uint8_t pin1, uint8_t pin2) { begin(pin1, pin2);}
+
+	// two step setup for platforms that have issues with constructor ordering
+	Encoder() { }
+	void begin(uint8_t pin1, uint8_t pin2) {
 		#ifdef INPUT_PULLUP
 		pinMode(pin1, INPUT_PULLUP);
 		pinMode(pin2, INPUT_PULLUP);
@@ -303,8 +306,12 @@ public:
 		uint8_t p1val = DIRECT_PIN_READ(arg->pin1_register, arg->pin1_bitmask);
 		uint8_t p2val = DIRECT_PIN_READ(arg->pin2_register, arg->pin2_bitmask);
 		uint8_t state = arg->state & 3;
+		//Serial.print(p1val); Serial.print(", ");
+		//Serial.print(p2val); Serial.print(", ");
+		//Serial.print(state); Serial.print(", ");
 		if (p1val) state |= 4;
 		if (p2val) state |= 8;
+		//Serial.print(state); Serial.println(", ");
 		arg->state = (state >> 2);
 		switch (state) {
 			case 1: case 7: case 8: case 14:
@@ -769,7 +776,7 @@ private:
 	static ENCODER_ISR_ATTR void isr2(void) { update(interruptArgs[2]); }
 	#endif
 	#ifdef CORE_INT3_PIN
-	static ENCODER_ISR_ATTR void isr3(void) { update(interruptArgs[3]); }
+	static ENCODER_ISR_ATTR void isr3(void) { update(interruptArgs[3]);}
 	#endif
 	#ifdef CORE_INT4_PIN
 	static ENCODER_ISR_ATTR void isr4(void) { update(interruptArgs[4]); }

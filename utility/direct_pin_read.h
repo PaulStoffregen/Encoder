@@ -3,7 +3,6 @@
 
 #if defined(__AVR__)
 
-#define IO_REG_TYPE			uint8_t
 #define PIN_TO_BASEREG(pin)             (portInputRegister(digitalPinToPort(pin)))
 #define PIN_TO_BITMASK(pin)             (digitalPinToBitMask(pin))
 #define DIRECT_PIN_READ(base, mask)     (((*(base)) & (mask)) ? 1 : 0)
@@ -110,6 +109,25 @@ IO_REG_TYPE directRead(volatile IO_REG_TYPE *base, IO_REG_TYPE pin)
     return ((ret >> GPIO_ID(pin)) & 0x01);
 }
 #define DIRECT_PIN_READ(base, pin)      directRead(base, pin)
+
+#elif defined(ARDUINO_UNOR4_WIFI) || defined(ARDUINO_UNOR4_MINIMA) /*Arduino UnoR4 */
+
+#define IO_REG_TYPE			uint32_t
+#define PIN_TO_BASEREG(pin)             (volatile uint32_t*)(portInputRegister(digitalPinToPort(pin)))
+#define PIN_TO_BITMASK(pin)             (digitalPinToBitMask(pin))
+#define DIRECT_PIN_READ(base, mask)     (((*(base)) & (mask)) ? 1 : 0)
+
+#elif defined(ARDUINO_GIGA)
+
+    #define digitalPinToPort(P) (digitalPinToPinName(P)/32)
+    #define digitalPinToBitMask(P) (1 << (digitalPinToPinName(P) % 32))
+    #define portModeRegister(P) (uint32_t*)P
+
+    #define IO_REG_TYPE uint32_t
+    #define PIN_TO_BASEREG(pin) portModeRegister(digitalPinToPort(pin))
+    #define PIN_TO_BITMASK(pin) (digitalPinToBitMask(pin))
+    #define DIRECT_PIN_READ(base, pin) digitalRead(pin)
+    
 
 #endif
 
