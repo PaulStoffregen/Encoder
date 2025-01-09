@@ -89,6 +89,12 @@
   #define CORE_INT1_PIN		11
   #define CORE_INT2_PIN		2
 
+// MightyCore (64 untested 32A-bobuino-tested-OK)
+#elif defined(__AVR_ATmega64__) || defined(__AVR_ATmega32__)
+  #define CORE_NUM_INTERRUPT	2
+  #define CORE_INT0_PIN		10
+  #define CORE_INT1_PIN		11
+
 // ATmega32u2 and ATmega32u16 based boards with HoodLoader2
 #elif defined(__AVR_ATmega32U2__) || defined(__AVR_ATmega16U2__)
   #define CORE_NUM_INTERRUPT 8
